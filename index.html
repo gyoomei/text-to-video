@@ -856,16 +856,17 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
 
       const mSel = $('genModel');
 
-      // Filter model yang invalid untuk provider type tertentu
-      let validModels = p.models || [];
-      if(p.type === 'replicate') {
-        validModels = validModels.filter(m => m.id && m.id.includes('/'));
-      }
+      // Debug log
+      console.log('Provider:', p.name, 'type:', p.type, 'models:', p.models?.length || 0, p.models?.slice(0,3));
 
-      if(validModels.length) {
+      if(p.models?.length) {
         mSel.innerHTML = '<option value="">-- Pilih model --</option>' +
-          validModels.map(m=>`<option value="${m.id}" data-type="${m.type||p.type}">${m.name}</option>`).join('');
-        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — ${validModels.length} model tersedia dari scan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span>`;
+          p.models.map(m=>{
+            const isInvalidReplicate = p.type==='replicate' && m.id && !m.id.includes('/');
+            const label = isInvalidReplicate ? `⚠️ ${m.name} (tanpa owner/)` : m.name;
+            return `<option value="${m.id}" data-type="${m.type||p.type}">${label}</option>`;
+          }).join('');
+        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — ${p.models.length} model tersedia dari scan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span>`;
       } else {
         mSel.innerHTML = '<option value="">-- Pilih model --</option><option value="custom">Custom Model (ketik ID manual)</option>';
         $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — Belum ada model terscan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span><br>Pilih "Custom Model" lalu masukkan ID, atau scan dulu di tab Providers.`;
