@@ -682,22 +682,16 @@
 
       try {
         if(p.type==='replicate') {
-          // Replicate scan — ambil semua model (lebih longgar)
-          let cursor = null;
-          for(let page=0; page<8; page++) {
-            const qs = cursor ? '?cursor='+encodeURIComponent(cursor) : '';
-            const url = `/api/proxy?path=/models${qs}&baseUrl=${encodeURIComponent(p.baseUrl)}`;
-            const res = await fetch(url, { headers: { 'Authorization': auth } });
-            debugInfo.status = res.status + ' ' + res.statusText;
-            const data = await res.json();
-            debugInfo.raw = data;
+          // Replicate scan — ambil 1 page saja dengan per_page besar (cursor sering error)
+          const url = `/api/proxy?path=/models?per_page=100&baseUrl=${encodeURIComponent(p.baseUrl)}`;
+          const res = await fetch(url, { headers: { 'Authorization': auth } });
+          debugInfo.status = res.status + ' ' + res.statusText;
+          const data = await res.json();
+          debugInfo.raw = data;
 
-            if(!res.ok) {
-              debugInfo.error = data.detail || data.error || JSON.stringify(data).slice(0,200);
-              break;
-            }
-            if(!data.results || !data.results.length) break;
-
+          if(!res.ok) {
+            debugInfo.error = data.detail || data.error || JSON.stringify(data).slice(0,200);
+          } else if(data.results && data.results.length) {
             // Ambil SEMUA model, tapi sort yang video-relevan di atas
             const mapped = data.results.map(m => {
               const name = (m.name||'').toLowerCase();
@@ -707,11 +701,9 @@
               return { id: m.name, name: m.name, description: m.description||'', type: 'replicate', isVideo };
             });
             foundModels.push(...mapped);
-            cursor = data.next;
-            if(!cursor) break;
+            // Sort: video-relevan di atas
+            foundModels.sort((a,b) => (b.isVideo?1:0) - (a.isVideo?1:0));
           }
-          // Sort: video-relevan di atas
-          foundModels.sort((a,b) => (b.isVideo?1:0) - (a.isVideo?1:0));
         } else {
           // OpenAI-compatible scan
           const url = `/api/proxy?path=/models&baseUrl=${encodeURIComponent(p.baseUrl)}`;
