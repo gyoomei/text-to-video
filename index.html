@@ -519,16 +519,21 @@
       const authHeader = $('pAuthHeader').value.trim();
       if(!name || !baseUrl || !apiKey) { showToast('Nama, Base URL, dan API Key wajib diisi','error'); return; }
       const provider = { id: editingProviderId||genId(), name, type, baseUrl, apiKey, authHeader: authHeader||PROVIDER_PRESETS[type]?.authHeader||'Bearer {key}', models: [] };
+      let isNew = false;
       if(editingProviderId) {
         const idx = providers.findIndex(p=>p.id===editingProviderId);
         if(idx>=0) { provider.models = providers[idx].models; providers[idx] = provider; }
       } else {
         providers.push(provider);
+        isNew = true;
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(providers));
       closeProviderModal();
       renderProviderList();
       showToast(editingProviderId?'Provider diupdate':'Provider ditambahkan');
+      if(isNew) {
+        setTimeout(() => openScanModal(provider.id), 300);
+      }
     }
 
     function deleteProvider(id) {
@@ -560,7 +565,14 @@
         list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔌</div><div>Belum ada provider. Tambahkan provider pertama-mu!</div></div>`;
         return;
       }
-      list.innerHTML = providers.map(p=>`
+      list.innerHTML = providers.map(p=>{
+        const hasModels = (p.models?.length||0) > 0;
+        const modelTagClass = hasModels ? 'tag-green' : 'tag-orange';
+        const modelTagText = hasModels ? `${p.models.length} model` : 'Belum scan';
+        const scanBtnText = hasModels ? '🔍 Scan Ulang' : '🔍 Scan Model';
+        const scanBtnClass = hasModels ? 'btn-secondary' : 'btn-primary';
+        const modelPreview = hasModels ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">${p.models.slice(0,5).map(m=>`<span class="tag tag-blue" style="font-size:0.7rem">${m.name.split('/').pop()}</span>`).join('')}${p.models.length>5?`<span class="tag tag-purple" style="font-size:0.7rem">+${p.models.length-5}</span>`:''}</div>` : '';
+        return `
         <div class="provider-card">
           <div class="provider-icon">🔌</div>
           <div class="provider-info">
@@ -568,17 +580,17 @@
             <div class="provider-url">${p.baseUrl}</div>
             <div class="provider-meta">
               <span class="tag tag-${p.type==='replicate'?'green':p.type==='openai-compatible'?'blue':p.type==='fal'?'purple':'orange'}">${p.type}</span>
-              <span>Key: ${mask(p.apiKey)}</span>
-              <span>Model: ${p.models?.length||0}</span>
+              <span class="tag ${modelTagClass}">${modelTagText}</span>
             </div>
+            ${modelPreview}
           </div>
           <div class="provider-actions">
-            <button class="btn btn-secondary btn-sm" onclick="openScanModal('${p.id}')">🔍 Scan</button>
+            <button class="btn ${scanBtnClass} btn-sm" onclick="openScanModal('${p.id}')">${scanBtnText}</button>
             <button class="btn btn-secondary btn-sm" onclick="openProviderModal('${p.id}')">✏️ Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteProvider('${p.id}')">🗑️</button>
           </div>
         </div>
-      `).join('');
+      `}).join('');
     }
 
     // ==================== MODEL SCANNER ====================
