@@ -259,6 +259,7 @@
             <option value="">-- Pilih model --</option>
           </select>
           <div class="hint" id="modelHint"></div>
+          <input type="text" class="form-input" id="customModelId" placeholder="owner/name (contoh: stability-ai/stable-video-diffusion)" style="display:none;margin-top:10px">
         </div>
       </div>
 
@@ -722,14 +723,14 @@
       }
 
       // Fallback preset untuk Replicate kalau scan kosong atau error
+      // Catatan: model-model ini mungkin tidak lagi tersedia di Replicate.
+      // Selalu klik "🔍 Scan Model" untuk mendapatkan model yang aktual,
+      // atau gunakan "Custom Model" dan masukkan ID manual.
       if(p.type==='replicate' && foundModels.length===0) {
         foundModels = [
-          { id: 'ali-vilab/text-to-video-ms-1.7b', name: 'ali-vilab/text-to-video-ms-1.7b', description: 'ModelScope Text-to-Video', type: 'replicate', isVideo: true },
-          { id: 'anotherjesse/zeroscope-v2-xl', name: 'anotherjesse/zeroscope-v2-xl', description: 'Zeroscope v2 XL — high quality video', type: 'replicate', isVideo: true },
-          { id: 'lucataco/animate-diff', name: 'lucataco/animate-diff', description: 'AnimateDiff — animated images', type: 'replicate', isVideo: true },
-          { id: 'stability-ai/stable-video-diffusion', name: 'stability-ai/stable-video-diffusion', description: 'Stable Video Diffusion — image to video', type: 'replicate', isVideo: true },
-          { id: 'stability-ai/svd', name: 'stability-ai/svd', description: 'SVD — Stable Video Diffusion', type: 'replicate', isVideo: true },
-          { id: 'cjwbw/damo-text-to-video', name: 'cjwbw/damo-text-to-video', description: 'Damo Text-to-Video', type: 'replicate', isVideo: true },
+          { id: 'stability-ai/stable-video-diffusion', name: 'stability-ai/stable-video-diffusion', description: 'Stable Video Diffusion — image to video (fallback)', type: 'replicate', isVideo: true },
+          { id: 'stability-ai/svd', name: 'stability-ai/svd', description: 'SVD — Stable Video Diffusion (fallback)', type: 'replicate', isVideo: true },
+          { id: 'minimax/video-01', name: 'minimax/video-01', description: 'MiniMax Video-01 text-to-video (fallback)', type: 'replicate', isVideo: true },
         ];
       }
 
@@ -849,8 +850,8 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
           p.models.map(m=>`<option value="${m.id}" data-type="${m.type||p.type}">${m.name}</option>`).join('');
         $('modelHint').textContent = `${p.models.length} model tersedia dari scan`;
       } else {
-        mSel.innerHTML = '<option value="">-- Pilih model --</option><option value="custom">Custom Model (masukkan ID manual)</option>';
-        $('modelHint').textContent = 'Belum ada model terscan. Pilih Custom atau scan dulu di tab Providers.';
+        mSel.innerHTML = '<option value="">-- Pilih model --</option><option value="custom">Custom Model (ketik ID manual)</option>';
+        $('modelHint').textContent = 'Belum ada model terscan. Pilih "Custom Model" lalu masukkan ID (format: owner/name), atau scan dulu di tab Providers.';
       }
       $('modelSelectWrap').style.display = 'block';
       $('promptPanel').style.display = 'block';
@@ -858,15 +859,25 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
     }
 
     function onModelChange() {
-      // Could show model info here
+      const modelId = $('genModel').value;
+      if(modelId === 'custom') {
+        $('customModelId').style.display = 'block';
+        $('customModelId').focus();
+      } else {
+        $('customModelId').style.display = 'none';
+      }
     }
 
     async function generateVideos() {
       const pid = $('genProvider').value;
-      const modelId = $('genModel').value;
+      let modelId = $('genModel').value;
       const prompt = $('genPrompt').value.trim();
       const imageBase64 = $('imageBase64').value;
       if(!pid || !modelId) { showToast('Pilih provider dan model','error'); return; }
+      if(modelId === 'custom') {
+        modelId = $('customModelId').value.trim();
+        if(!modelId) { showToast('Masukkan Model ID manual (format: owner/name)','error'); return; }
+      }
       if(currentMode === 'text' && !prompt) { showToast('Masukkan prompt','error'); return; }
       if(currentMode === 'image' && !imageBase64) { showToast('Upload gambar dulu untuk mode Image→Video','error'); return; }
 
@@ -910,12 +921,26 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
 
     async function generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64) {
       $('genBtnText').innerHTML = '<span class="spinner"></span> Mengambil model...';
+
+      // Validasi modelId
+      if(!modelId || modelId === 'custom') {
+        throw new Error('Pilih model dari daftar scan, atau masukkan Model ID manual (format: owner/name). Klik "🔍 Scan Model" di tab Providers untuk memuat model.');
+      }
+      if(!modelId.includes('/')) {
+        throw new Error(`Model ID tidak valid: "${modelId}". Format Replicate harus "owner/name" (contoh: stability-ai/stable-video-diffusion)`);
+      }
+
       const [owner,name] = modelId.split('/');
       const versionRes = await fetch(`/api/proxy?path=/models/${owner}/${name}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
         headers: { 'Authorization': auth }
       });
       const versionData = await versionRes.json();
-      if(!versionData.latest_version) throw new Error('Model version tidak ditemukan');
+
+      if(!versionData.latest_version) {
+        console.error('Replicate model response:', versionData);
+        const apiError = versionData.detail || versionData.error || JSON.stringify(versionData).slice(0,300);
+        throw new Error(`Model "${modelId}" tidak ditemukan atau tidak punya versi publik. Response: ${apiError}`);
+      }
       const version = versionData.latest_version.id;
 
       for(let i=0; i<numVideos; i++) {
