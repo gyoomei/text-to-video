@@ -1380,7 +1380,12 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
               const res = await fetch(`/api/proxy?path=/predictions/${pred.id}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
                 headers: { 'Authorization': auth }
               });
-              data = await res.json();
+              if(!res.ok) {
+                const errText = await res.text().catch(()=> '');
+                data = { status: 'failed', error: `HTTP ${res.status}${errText ? `: ${errText.slice(0,120)}` : ''}`, output: null, logs: '' };
+              } else {
+                data = await res.json();
+              }
             }
 
             pred.status = data.status; pred.output = data.output; pred.error = data.error;
@@ -1428,7 +1433,7 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       if(status==='starting') meta.textContent = 'Memulai server...';
       else if(status==='processing') meta.textContent = `Generate... ${progress}%`;
       else if(status==='succeeded') { meta.textContent = 'Selesai!'; card.classList.add('success'); }
-      else if(status==='failed') { meta.textContent = 'Gagal'; card.classList.add('error'); }
+      else if(status==='failed') { meta.textContent = output ? `Gagal: ${String(output).slice(0,80)}` : 'Gagal'; card.classList.add('error'); }
     }
 
     function addVideoToGallery(idx, output, pred, p) {
