@@ -1,21 +1,44 @@
 const ALLOWED_HOSTS = [
+  // Video AI
   'api.replicate.com',
-  'api.runwayml.com',
-  'api.stability.ai',
   'api.fal.ai',
+  'api.runwayml.com',
+  'api.pika.art',
+  'api.klingai.com',
+  'api.luma.ai',
+  'api.haiper.ai',
+  'api.viggle.ai',
+  'api.minimax.chat',
+  'api.bytedance.net',
+  'api.morphstudio.com',
+  'api.kaiber.ai',
+  'api.genmo.ai',
+  // Image AI (bisa image-to-video)
+  'api.stability.ai',
+  'api.leonardo.ai',
+  'api.ideogram.ai',
+  'api.midjourney.com',
+  'api.d-id.com',
+  'api.heygen.com',
+  // LLM / Multi-modal
+  'api.openai.com',
+  'api.x.ai',
+  'api.anthropic.com',
+  'api.groq.com',
   'api.together.xyz',
   'api.fireworks.ai',
-  'api.groq.com',
-  'api.openai.com',
-  'api.segmind.com',
-  'api-inference.huggingface.co',
-  'api.glif.app',
   'api.mistral.ai',
   'api.cohere.com',
   'api.deepseek.com',
+  'api.perplexity.ai',
   'api.novita.ai',
   'api.siliconflow.cn',
+  'api.glif.app',
+  'api.segmind.com',
   'openrouter.ai',
+  // HuggingFace
+  'api-inference.huggingface.co',
+  'huggingface.co',
 ];
 
 export default async function handler(req, res) {
@@ -40,7 +63,7 @@ export default async function handler(req, res) {
 
   const isAllowed = ALLOWED_HOSTS.some(h => parsed.hostname === h || parsed.hostname.endsWith('.' + h));
   if (!isAllowed) {
-    return res.status(403).json({ error: 'Host not allowed: ' + parsed.hostname });
+    return res.status(403).json({ error: 'Host not allowed: ' + parsed.hostname + '. Contact admin to add this provider.' });
   }
 
   const path = req.query.path || '';

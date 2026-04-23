@@ -383,8 +383,13 @@
         <select class="form-select" id="pType" onchange="onProviderTypeChange()">
           <option value="replicate">Replicate (replicate.com)</option>
           <option value="openai-compatible">OpenAI Compatible (Together, Fireworks, Groq, OpenAI, etc)</option>
+          <option value="xai">xAI / Grok (x.ai)</option>
           <option value="fal">Fal.ai (fal.ai)</option>
           <option value="runway">RunwayML (runwayml.com)</option>
+          <option value="together">Together AI (together.xyz)</option>
+          <option value="fireworks">Fireworks AI (fireworks.ai)</option>
+          <option value="groq">Groq (groq.com)</option>
+          <option value="openrouter">OpenRouter (openrouter.ai)</option>
           <option value="huggingface">HuggingFace Inference (huggingface.co)</option>
           <option value="segmind">Segmind (segmind.com)</option>
           <option value="custom">Custom / Lainnya</option>
@@ -444,8 +449,13 @@
       'openai-compatible': { baseUrl: 'https://api.openai.com/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/chat/completions', scanMethod: 'openai' },
       fal: { baseUrl: 'https://api.fal.ai', authHeader: 'Key {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
       runway: { baseUrl: 'https://api.runwayml.com/v1', authHeader: 'Bearer {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
+      xai: { baseUrl: 'https://api.x.ai/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/chat/completions', scanMethod: 'openai' },
+      together: { baseUrl: 'https://api.together.xyz/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/completions', scanMethod: 'openai' },
+      fireworks: { baseUrl: 'https://api.fireworks.ai/inference/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/completions', scanMethod: 'openai' },
+      groq: { baseUrl: 'https://api.groq.com/openai/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/chat/completions', scanMethod: 'openai' },
       huggingface: { baseUrl: 'https://api-inference.huggingface.co', authHeader: 'Bearer {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
       segmind: { baseUrl: 'https://api.segmind.com/v1', authHeader: 'Bearer {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
+      openrouter: { baseUrl: 'https://openrouter.ai/api/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/chat/completions', scanMethod: 'openai' },
       custom: { baseUrl: '', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/generate', scanMethod: 'openai' },
     };
 
@@ -462,6 +472,14 @@
     }
     function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
     function mask(str) { if(!str) return ''; return str.slice(0,4)+'****'+str.slice(-4); }
+    function getProviderColor(type) {
+      const colors = {
+        replicate: 'green', 'openai-compatible': 'blue', xai: 'blue', together: 'blue',
+        fireworks: 'blue', groq: 'blue', openrouter: 'blue',
+        fal: 'purple', runway: 'purple', huggingface: 'orange', segmind: 'orange', custom: 'pink'
+      };
+      return colors[type] || 'orange';
+    }
 
     // ==================== TABS ====================
     function switchTab(tab) {
@@ -502,8 +520,13 @@
       const hints = {
         replicate: 'Contoh: https://api.replicate.com/v1',
         'openai-compatible': 'Contoh: https://api.openai.com/v1 atau https://api.together.xyz/v1',
+        xai: 'Contoh: https://api.x.ai/v1',
         fal: 'Contoh: https://api.fal.ai',
         runway: 'Contoh: https://api.runwayml.com/v1',
+        together: 'Contoh: https://api.together.xyz/v1',
+        fireworks: 'Contoh: https://api.fireworks.ai/inference/v1',
+        groq: 'Contoh: https://api.groq.com/openai/v1',
+        openrouter: 'Contoh: https://openrouter.ai/api/v1',
         huggingface: 'Contoh: https://api-inference.huggingface.co',
         segmind: 'Contoh: https://api.segmind.com/v1',
         custom: 'Masukkan base URL provider-mu'
@@ -579,7 +602,7 @@
             <div class="provider-name">${p.name}</div>
             <div class="provider-url">${p.baseUrl}</div>
             <div class="provider-meta">
-              <span class="tag tag-${p.type==='replicate'?'green':p.type==='openai-compatible'?'blue':p.type==='fal'?'purple':'orange'}">${p.type}</span>
+              <span class="tag tag-${getProviderColor(p.type)}">${p.type}</span>
               <span class="tag ${modelTagClass}">${modelTagText}</span>
             </div>
             ${modelPreview}
