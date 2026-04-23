@@ -260,6 +260,7 @@
           </select>
           <div class="hint" id="modelHint"></div>
           <input type="text" class="form-input" id="customModelId" placeholder="owner/name (contoh: stability-ai/stable-video-diffusion)" style="display:none;margin-top:10px">
+          <div class="hint" id="customModelHint" style="display:none;margin-top:6px">Ketik ID lengkap dengan format <code>owner/nama-model</code>. Atau lebih mudah: klik <strong>tab Providers → 🔍 Scan Model</strong> dulu.</div>
         </div>
       </div>
 
@@ -862,9 +863,11 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       const modelId = $('genModel').value;
       if(modelId === 'custom') {
         $('customModelId').style.display = 'block';
+        $('customModelHint').style.display = 'block';
         $('customModelId').focus();
       } else {
         $('customModelId').style.display = 'none';
+        $('customModelHint').style.display = 'none';
       }
     }
 
@@ -926,8 +929,33 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       if(!modelId || modelId === 'custom') {
         throw new Error('Pilih model dari daftar scan, atau masukkan Model ID manual (format: owner/name). Klik "🔍 Scan Model" di tab Providers untuk memuat model.');
       }
+
+      // Auto-fix model umum yang sering typo / tanpa owner
+      const knownModels = {
+        'stable-video-diffusion': 'stability-ai/stable-video-diffusion',
+        'svd': 'stability-ai/stable-video-diffusion',
+        'animate-diff': 'lucataco/animate-diff',
+        'zeroscope': 'anotherjesse/zeroscope-v2-xl',
+        'zeroscope-v2-xl': 'anotherjesse/zeroscope-v2-xl',
+        'video-01': 'minimax/video-01',
+        'damo-text-to-video': 'cjwbw/damo-text-to-video',
+      };
+      const lower = modelId.toLowerCase().trim();
+      if(knownModels[lower]) {
+        console.log('Auto-fix model:', modelId, '→', knownModels[lower]);
+        modelId = knownModels[lower];
+      }
+
       if(!modelId.includes('/')) {
-        throw new Error(`Model ID tidak valid: "${modelId}". Format Replicate harus "owner/name" (contoh: stability-ai/stable-video-diffusion)`);
+        throw new Error(
+          `Model ID tidak valid: "${modelId}".\n\n` +
+          `Format Replicate HARUS pakai "/" → owner/name\n` +
+          `Contoh yang benar:\n` +
+          `• stability-ai/stable-video-diffusion\n` +
+          `• minimax/video-01\n` +
+          `• lucataco/animate-diff\n\n` +
+          `Kalau belum scan, klik tab Providers → 🔍 Scan Model, lalu pilih dari daftar.`
+        );
       }
 
       const [owner,name] = modelId.split('/');
