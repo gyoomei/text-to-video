@@ -595,6 +595,17 @@
       showToast('Provider dihapus');
     }
 
+    function clearProviderModels(id) {
+      if(!confirm('Hapus semua model terscan dari provider ini?')) return;
+      const idx = providers.findIndex(p=>p.id===id);
+      if(idx>=0) {
+        providers[idx].models = [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(providers));
+        renderProviderList();
+        showToast('Model dihapus dari provider');
+      }
+    }
+
     async function testProviderConnection() {
       const baseUrl = $('pBaseUrl').value.trim().replace(/\/$/,'');
       const apiKey = $('pApiKey').value.trim();
@@ -637,8 +648,9 @@
           </div>
           <div class="provider-actions">
             <button class="btn ${scanBtnClass} btn-sm" onclick="openScanModal('${p.id}')">${scanBtnText}</button>
+            ${hasModels ? `<button class="btn btn-secondary btn-sm" onclick="clearProviderModels('${p.id}')">🗑️ Hapus Model</button>` : ''}
             <button class="btn btn-secondary btn-sm" onclick="openProviderModal('${p.id}')">✏️ Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteProvider('${p.id}')">🗑️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProvider('${p.id}')">🗑️ Hapus</button>
           </div>
         </div>
       `}).join('');
@@ -851,13 +863,20 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       $('customModelHint').style.display = 'none';
 
       const mSel = $('genModel');
-      if(p.models?.length) {
+
+      // Filter model yang invalid untuk provider type tertentu
+      let validModels = p.models || [];
+      if(p.type === 'replicate') {
+        validModels = validModels.filter(m => m.id && m.id.includes('/'));
+      }
+
+      if(validModels.length) {
         mSel.innerHTML = '<option value="">-- Pilih model --</option>' +
-          p.models.map(m=>`<option value="${m.id}" data-type="${m.type||p.type}">${m.name}</option>`).join('');
-        $('modelHint').textContent = `${p.models.length} model tersedia dari scan`;
+          validModels.map(m=>`<option value="${m.id}" data-type="${m.type||p.type}">${m.name}</option>`).join('');
+        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — ${validModels.length} model tersedia dari scan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span>`;
       } else {
         mSel.innerHTML = '<option value="">-- Pilih model --</option><option value="custom">Custom Model (ketik ID manual)</option>';
-        $('modelHint').textContent = 'Belum ada model terscan. Pilih "Custom Model" lalu masukkan ID (format: owner/name), atau scan dulu di tab Providers.';
+        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — Belum ada model terscan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span><br>Pilih "Custom Model" lalu masukkan ID, atau scan dulu di tab Providers.`;
       }
       $('modelSelectWrap').style.display = 'block';
       $('promptPanel').style.display = 'block';
