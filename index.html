@@ -263,9 +263,35 @@
       </div>
 
       <div class="panel" id="promptPanel" style="display:none">
-        <div class="panel-title blue">2. Prompt</div>
+        <div class="panel-title blue">2. Mode & Konten</div>
+
+        <!-- Mode Toggle -->
         <div class="form-group">
-          <label class="form-label">Deskripsi Video</label>
+          <label class="form-label">Mode Generate</label>
+          <div style="display:flex;gap:10px">
+            <button type="button" id="modeText" class="btn btn-primary" style="flex:1" onclick="setMode('text')">✍️ Text → Video</button>
+            <button type="button" id="modeImage" class="btn btn-secondary" style="flex:1" onclick="setMode('image')">🖼️ Image → Video</button>
+          </div>
+        </div>
+
+        <!-- Image Upload -->
+        <div class="form-group" id="imageUploadWrap" style="display:none">
+          <label class="form-label">Upload Gambar</label>
+          <div id="dropZone" style="border:2px dashed var(--border);border-radius:16px;padding:28px;text-align:center;cursor:pointer;transition:all 0.3s;background:rgba(10,13,18,0.4)" ondragover="event.preventDefault();this.style.borderColor='var(--green)';this.style.background='rgba(0,229,160,0.05)'" ondragleave="this.style.borderColor='var(--border)';this.style.background='rgba(10,13,18,0.4)'" ondrop="handleDrop(event)" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size:2.5rem;margin-bottom:8px;opacity:0.6">📤</div>
+            <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px">Klik atau drag gambar ke sini</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary)">JPG, PNG, WEBP (maks 4MB)</div>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+          <div id="imagePreviewWrap" style="display:none;margin-top:12px;position:relative">
+            <img id="imagePreview" style="max-height:200px;border-radius:14px;border:1px solid var(--border);display:block;margin:0 auto">
+            <button class="btn btn-danger btn-sm" style="position:absolute;top:8px;right:8px" onclick="clearImage()">✕</button>
+          </div>
+          <input type="hidden" id="imageBase64">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" id="promptLabel">Deskripsi Video</label>
           <textarea class="form-textarea" id="genPrompt" placeholder="Contoh: A serene lake surrounded by mountains at sunset, camera slowly panning across the water..."></textarea>
         </div>
         <div class="form-row">
@@ -744,6 +770,63 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       showToast(`${foundModels.length} model ditemukan`);
     }
 
+    // ==================== IMAGE UPLOAD ====================
+    let currentMode = 'text';
+    function setMode(mode) {
+      currentMode = mode;
+      $('modeText').className = mode==='text' ? 'btn btn-primary' : 'btn btn-secondary';
+      $('modeImage').className = mode==='image' ? 'btn btn-primary' : 'btn btn-secondary';
+      $('imageUploadWrap').style.display = mode==='image' ? 'block' : 'none';
+      $('promptLabel').textContent = mode==='image' ? 'Deskripsi Animasi (Opsional)' : 'Deskripsi Video';
+      $('genPrompt').placeholder = mode==='image'
+        ? 'Contoh: camera slowly zooming out, gentle wind blowing...'
+        : 'Contoh: A serene lake surrounded by mountains at sunset, camera slowly panning across the water...';
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.currentTarget.style.borderColor='var(--border)';
+      e.currentTarget.style.background='rgba(10,13,18,0.4)';
+      const files = e.dataTransfer.files;
+      if(files.length) processImageFile(files[0]);
+    }
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if(files.length) processImageFile(files[0]);
+    }
+    function processImageFile(file) {
+      if(!file.type.startsWith('image/')) { showToast('File harus gambar','error'); return; }
+      if(file.size > 8*1024*1024) { showToast('Ukuran maks 8MB','error'); return; }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxSize = 512;
+          let w = img.width, h = img.height;
+          if(w > h && w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else if(h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          $('imageBase64').value = dataUrl;
+          $('imagePreview').src = dataUrl;
+          $('imagePreviewWrap').style.display = 'block';
+          $('dropZone').style.display = 'none';
+          showToast('Gambar siap! (dikompres '+w+'x'+h+')');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    function clearImage() {
+      $('imageBase64').value = '';
+      $('imagePreviewWrap').style.display = 'none';
+      $('dropZone').style.display = 'block';
+      $('fileInput').value = '';
+    }
+
     // ==================== GENERATE ====================
     function populateGenProviders() {
       const sel = $('genProvider');
@@ -782,8 +865,10 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       const pid = $('genProvider').value;
       const modelId = $('genModel').value;
       const prompt = $('genPrompt').value.trim();
+      const imageBase64 = $('imageBase64').value;
       if(!pid || !modelId) { showToast('Pilih provider dan model','error'); return; }
-      if(!prompt) { showToast('Masukkan prompt','error'); return; }
+      if(currentMode === 'text' && !prompt) { showToast('Masukkan prompt','error'); return; }
+      if(currentMode === 'image' && !imageBase64) { showToast('Upload gambar dulu untuk mode Image→Video','error'); return; }
 
       const p = providers.find(x=>x.id===pid);
       if(!p) return;
@@ -802,13 +887,13 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
         $('progressGrid').innerHTML = '';
 
         if(p.type === 'replicate') {
-          await generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+          await generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         } else if(p.type === 'fal') {
-          await generateFal(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+          await generateFal(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         } else if(p.type === 'huggingface') {
-          await generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+          await generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         } else if(p.type === 'segmind') {
-          await generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+          await generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         } else {
           showToast('Provider '+p.type+' belum support text-to-video. Gunakan Replicate, Fal.ai, HuggingFace, atau Segmind.','error');
           throw new Error('Provider not supported');
@@ -822,7 +907,7 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       }
     }
 
-    async function generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+    async function generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64) {
       $('genBtnText').innerHTML = '<span class="spinner"></span> Mengambil model...';
       const [owner,name] = modelId.split('/');
       const versionRes = await fetch(`/api/proxy?path=/models/${owner}/${name}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
@@ -834,7 +919,9 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
 
       for(let i=0; i<numVideos; i++) {
         const s = sameSeed ? seed : seed + i;
-        const body = { version, input: { prompt, seed: s } };
+        const input = { prompt: prompt || 'Animate this image', seed: s };
+        if(imageBase64) input.image = imageBase64;
+        const body = { version, input };
         const predRes = await fetch(`/api/proxy?path=/predictions&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
           method: 'POST',
           headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
@@ -852,11 +939,12 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       pollAllPredictions(p, auth);
     }
 
-    async function generateFal(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+    async function generateFal(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64) {
       $('genBtnText').innerHTML = '<span class="spinner"></span> Submitting to Fal...';
       for(let i=0; i<numVideos; i++) {
         const s = sameSeed ? seed : seed + i;
-        const body = { prompt, seed: s };
+        const body = { prompt: prompt || 'Animate this image', seed: s };
+        if(imageBase64) body.image_url = imageBase64;
         const path = modelId.startsWith('/') ? modelId : `/${modelId}`;
         const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
           method: 'POST',
@@ -885,11 +973,11 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       pollAllPredictions(p, auth);
     }
 
-    async function generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+    async function generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64) {
       $('genBtnText').innerHTML = '<span class="spinner"></span> Submitting to HuggingFace...';
       for(let i=0; i<numVideos; i++) {
         const s = sameSeed ? seed : seed + i;
-        const body = { inputs: prompt, parameters: { seed: s } };
+        const body = { inputs: imageBase64 || prompt, parameters: { seed: s } };
         const path = `/models/${modelId}`;
         const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
           method: 'POST',
@@ -913,11 +1001,12 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       $('genBtnText').textContent = '🎬 Generate Video';
     }
 
-    async function generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+    async function generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64) {
       $('genBtnText').innerHTML = '<span class="spinner"></span> Submitting to Segmind...';
       for(let i=0; i<numVideos; i++) {
         const s = sameSeed ? seed : seed + i;
-        const body = { prompt, seed: s };
+        const body = { prompt: prompt || 'Animate this image', seed: s };
+        if(imageBase64) body.image = imageBase64;
         const path = modelId.startsWith('/') ? modelId : `/${modelId}`;
         const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
           method: 'POST',

@@ -79,13 +79,26 @@ export default async function handler(req, res) {
       method: req.method,
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/json',
         'User-Agent': 'Text2Video-App/1.0',
       },
     };
 
+    // Preserve original Content-Type if provided, else default to JSON
+    const ct = req.headers['content-type'];
+    if (ct) {
+      fetchOptions.headers['Content-Type'] = ct;
+    } else {
+      fetchOptions.headers['Content-Type'] = 'application/json';
+    }
+
     if ((req.method === 'POST' || req.method === 'PUT') && req.body) {
-      fetchOptions.body = JSON.stringify(req.body);
+      // If body is already string (from Vercel parsing), pass as-is. Else stringify.
+      if (typeof req.body === 'string') {
+        fetchOptions.body = req.body;
+      } else {
+        fetchOptions.body = JSON.stringify(req.body);
+        if (!ct) fetchOptions.headers['Content-Type'] = 'application/json';
+      }
     }
 
     const response = await fetch(targetUrl, fetchOptions);
