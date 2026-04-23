@@ -845,6 +845,11 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       const p = providers.find(x=>x.id===pid);
       if(!p) return;
 
+      // Reset custom model input dan state
+      $('customModelId').value = '';
+      $('customModelId').style.display = 'none';
+      $('customModelHint').style.display = 'none';
+
       const mSel = $('genModel');
       if(p.models?.length) {
         mSel.innerHTML = '<option value="">-- Pilih model --</option>' +
@@ -881,11 +886,16 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
         modelId = $('customModelId').value.trim();
         if(!modelId) { showToast('Masukkan Model ID manual (format: owner/name)','error'); return; }
       }
+
+      const p = providers.find(x=>x.id===pid);
+      if(!p) { showToast('Provider tidak ditemukan','error'); return; }
+
+      // Debug log
+      console.log('Generate:', { provider: p.name, type: p.type, modelId, prompt: prompt.slice(0,50) });
+
       if(currentMode === 'text' && !prompt) { showToast('Masukkan prompt','error'); return; }
       if(currentMode === 'image' && !imageBase64) { showToast('Upload gambar dulu untuk mode Image→Video','error'); return; }
 
-      const p = providers.find(x=>x.id===pid);
-      if(!p) return;
       const numVideos = parseInt($('genNumVideos').value);
       let seed = $('genSeed').value ? parseInt($('genSeed').value) : Math.floor(Math.random()*1000000);
       const sameSeed = $('genSameSeed').checked;
