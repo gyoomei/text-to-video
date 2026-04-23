@@ -692,14 +692,17 @@
           if(!res.ok) {
             debugInfo.error = data.detail || data.error || JSON.stringify(data).slice(0,200);
           } else if(data.results && data.results.length) {
-            // Ambil SEMUA model, tapi sort yang video-relevan di atas
-            const mapped = data.results.map(m => {
-              const name = (m.name||'').toLowerCase();
-              const desc = (m.description||'').toLowerCase();
-              const tags = (m.tags||[]).join(' ').toLowerCase();
-              const isVideo = desc.includes('video') || desc.includes('animation') || tags.includes('video') || name.includes('video') || name.includes('animate') || name.includes('svd') || name.includes('zeroscope') || name.includes('motion') || name.includes('diffusion');
-              return { id: m.name, name: m.name, description: m.description||'', type: 'replicate', isVideo };
-            });
+            // Ambil model yang valid saja untuk Replicate
+            const validRe = /^[a-z0-9._-]+\/[a-z0-9._-]+$/i;
+            const mapped = data.results
+              .map(m => {
+                const name = (m.name||'').toLowerCase();
+                const desc = (m.description||'').toLowerCase();
+                const tags = (m.tags||[]).join(' ').toLowerCase();
+                const isVideo = desc.includes('video') || desc.includes('animation') || tags.includes('video') || name.includes('video') || name.includes('animate') || name.includes('svd') || name.includes('zeroscope') || name.includes('motion') || name.includes('diffusion');
+                return { id: m.name, name: m.name, description: m.description||'', type: 'replicate', isVideo };
+              })
+              .filter(m => m.id && validRe.test(m.id));
             foundModels.push(...mapped);
             // Sort: video-relevan di atas
             foundModels.sort((a,b) => (b.isVideo?1:0) - (a.isVideo?1:0));
@@ -859,17 +862,27 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       // Debug log
       console.log('Provider:', p.name, 'type:', p.type, 'models:', p.models?.length || 0, p.models?.slice(0,3));
 
-      if(p.models?.length) {
+      let modelsToShow = p.models || [];
+      let invalidCount = 0;
+      if(p.type === 'replicate') {
+        const validRe = /^[a-z0-9._-]+\/[a-z0-9._-]+$/i;
+        const valid = [];
+        const invalid = [];
+        for(const m of modelsToShow) {
+          if(m?.id && validRe.test(m.id)) valid.push(m);
+          else invalid.push(m);
+        }
+        modelsToShow = valid;
+        invalidCount = invalid.length;
+      }
+
+      if(modelsToShow.length) {
         mSel.innerHTML = '<option value="">-- Pilih model --</option>' +
-          p.models.map(m=>{
-            const isInvalidReplicate = p.type==='replicate' && m.id && !m.id.includes('/');
-            const label = isInvalidReplicate ? `⚠️ ${m.name} (tanpa owner/)` : m.name;
-            return `<option value="${m.id}" data-type="${m.type||p.type}">${label}</option>`;
-          }).join('');
-        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — ${p.models.length} model tersedia dari scan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span>`;
+          modelsToShow.map(m=>`<option value="${m.id}" data-type="${m.type||p.type}">${m.name}</option>`).join('');
+        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — ${modelsToShow.length} model tersedia dari scan.${invalidCount ? `<br><span style="color:#ffb86b">${invalidCount} model invalid disembunyikan.</span>` : ''}<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span>`;
       } else {
         mSel.innerHTML = '<option value="">-- Pilih model --</option><option value="custom">Custom Model (ketik ID manual)</option>';
-        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — Belum ada model terscan.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span><br>Pilih "Custom Model" lalu masukkan ID, atau scan dulu di tab Providers.`;
+        $('modelHint').innerHTML = `<strong>${p.name}</strong> (${p.type}) — Belum ada model Replicate yang valid.<br><span style="color:var(--text-secondary);font-size:0.75rem">Base URL: ${p.baseUrl}</span><br>Kalau sebelumnya pernah muncul model aneh, klik <strong>🗑️ Hapus Model</strong> lalu scan ulang.`;
       }
       $('modelSelectWrap').style.display = 'block';
       $('promptPanel').style.display = 'block';
