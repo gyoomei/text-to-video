@@ -1,0 +1,8 @@
+{
+  "name": "text-to-video",
+  "version": "1.0.0",
+  "description": "Text to Video AI Generator - Replicate API proxy",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
