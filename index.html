@@ -894,15 +894,10 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
           await generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         } else if(p.type === 'segmind') {
           await generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
-        } else if(p.type === 'xai') {
-          showToast('❌ xAI / Grok belum memiliki API text-to-video maupun image-to-video. Mereka hanya punya text chat dan image generation.','error');
-          throw new Error('xAI does not support video');
-        } else if(p.type === 'runway') {
-          showToast('❌ RunwayML belum diimplementasikan. Gunakan Replicate untuk image-to-video (model SVD).','error');
-          throw new Error('Runway not implemented');
         } else {
-          showToast('❌ Provider '+p.type+' belum support video generation. Gunakan Replicate, Fal.ai, HuggingFace, atau Segmind.','error');
-          throw new Error('Provider not supported');
+          // Generic fallback untuk provider lain (xai, runway, together, custom, dll)
+          showToast('⚠️ Provider ini menggunakan mode eksperimental. Mencoba generate...');
+          await generateGeneric(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         }
       } catch(err) {
         console.error(err);
@@ -1038,6 +1033,79 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       $('genBtnText').textContent = '🎬 Generate Video';
     }
 
+    async function generateGeneric(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64) {
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Mencoba generate (eksperimental)...';
+      for(let i=0; i<numVideos; i++) {
+        const s = sameSeed ? seed : seed + i;
+        const body = {
+          model: modelId,
+          prompt: prompt || 'Generate a video',
+          seed: s
+        };
+        if(imageBase64) {
+          body.image = imageBase64;
+          body.image_url = imageBase64;
+          body.input_image = imageBase64;
+        }
+
+        // Coba beberapa endpoint umum
+        const paths = [
+          modelId.startsWith('/') ? modelId : `/${modelId}`,
+          '/v1/video/generations',
+          '/v1/images/generations',
+          '/generate',
+          '/predictions'
+        ];
+
+        let lastErr = null;
+        let success = false;
+
+        for(const path of paths) {
+          try {
+            const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+              method: 'POST',
+              headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+              body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if(!res.ok || data.error) {
+              lastErr = data.error || data.detail || `HTTP ${res.status}`;
+              continue;
+            }
+
+            // Coba ekstrak URL video dari berbagai format response
+            let url = data.video?.url || data.url || data.output || data.data?.[0]?.url || data.choices?.[0]?.message?.content;
+            const reqId = data.id || data.request_id;
+
+            if(reqId && !url) {
+              // Async job ( seperti Replicate/Fal )
+              genState.predictions.push({ id: reqId, index: i+1, status: 'processing', output: null, error: null, provider: 'generic', baseUrl: p.baseUrl, auth, modelId });
+              renderProgressCard(i+1, 'starting', 5);
+              success = true;
+              break;
+            } else if(url) {
+              genState.predictions.push({ id: genId(), index: i+1, status: 'succeeded', output: url, error: null, provider: 'generic' });
+              renderProgressCard(i+1, 'succeeded', 100);
+              updateProgressCard(i+1, 'succeeded', 100, url);
+              addVideoToGallery(i+1, url, { id: genId() }, p);
+              success = true;
+              break;
+            }
+          } catch(e) {
+            lastErr = e.message;
+          }
+        }
+
+        if(!success) {
+          throw new Error('Generic generate gagal: ' + (lastErr || 'Tidak ada endpoint yang merespons dengan benar'));
+        }
+      }
+
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Generating...';
+      showToast(`${numVideos} job dikirim ke provider...`);
+      pollAllPredictions(p, auth);
+    }
+
     async function pollAllPredictions(p, auth) {
       const iv = setInterval(async ()=>{
         let allDone = true;
@@ -1066,6 +1134,32 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
                 pred.status = 'processing';
               }
               data = { status: pred.status, output: pred.output, error: pred.error, logs: '' };
+            } else if(pred.provider === 'generic') {
+              // Untuk generic, coba beberapa endpoint status
+              const statusPaths = [
+                `/v1/video/generations/${pred.id}`,
+                `/v1/images/generations/${pred.id}`,
+                `/predictions/${pred.id}`,
+                `/status/${pred.id}`
+              ];
+              let statusFound = false;
+              for(const sp of statusPaths) {
+                try {
+                  const res = await fetch(`/api/proxy?path=${encodeURIComponent(sp)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+                    headers: { 'Authorization': auth }
+                  });
+                  if(!res.ok) continue;
+                  const d = await res.json();
+                  if(d.status || d.output || d.url || d.video) {
+                    data = d;
+                    statusFound = true;
+                    break;
+                  }
+                } catch(e) { /* ignore */ }
+              }
+              if(!statusFound) {
+                data = { status: 'processing', output: null, error: null, logs: '' };
+              }
             } else {
               const res = await fetch(`/api/proxy?path=/predictions/${pred.id}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
                 headers: { 'Authorization': auth }
