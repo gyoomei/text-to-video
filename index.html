@@ -615,41 +615,73 @@
 
       const auth = p.authHeader.replace('{key}', p.apiKey);
       let foundModels = [];
+      let debugInfo = { status: '', raw: null, error: null };
 
       try {
-        if(p.type==='replicate' || (p.type==='custom' && PROVIDER_PRESETS[p.type]?.scanMethod==='replicate')) {
-          // Replicate scan
+        if(p.type==='replicate') {
+          // Replicate scan — ambil semua model (lebih longgar)
           let cursor = null;
-          for(let page=0; page<5; page++) {
-            const url = `/api/proxy?path=/models${cursor?'?cursor='+cursor:''}&baseUrl=${encodeURIComponent(p.baseUrl)}`;
+          for(let page=0; page<8; page++) {
+            const qs = cursor ? '?cursor='+encodeURIComponent(cursor) : '';
+            const url = `/api/proxy?path=/models${qs}&baseUrl=${encodeURIComponent(p.baseUrl)}`;
             const res = await fetch(url, { headers: { 'Authorization': auth } });
+            debugInfo.status = res.status + ' ' + res.statusText;
             const data = await res.json();
-            if(!data.results) break;
-            const videoModels = data.results.filter(m => {
+            debugInfo.raw = data;
+
+            if(!res.ok) {
+              debugInfo.error = data.detail || data.error || JSON.stringify(data).slice(0,200);
+              break;
+            }
+            if(!data.results || !data.results.length) break;
+
+            // Ambil SEMUA model, tapi sort yang video-relevan di atas
+            const mapped = data.results.map(m => {
+              const name = (m.name||'').toLowerCase();
               const desc = (m.description||'').toLowerCase();
               const tags = (m.tags||[]).join(' ').toLowerCase();
-              const name = (m.name||'').toLowerCase();
-              return desc.includes('video') || desc.includes('animation') || tags.includes('video') || name.includes('video') || name.includes('animate');
-            }).map(m=>({ id: m.name, name: m.name, description: m.description||'', type: 'replicate' }));
-            foundModels.push(...videoModels);
+              const isVideo = desc.includes('video') || desc.includes('animation') || tags.includes('video') || name.includes('video') || name.includes('animate') || name.includes('svd') || name.includes('zeroscope') || name.includes('motion') || name.includes('diffusion');
+              return { id: m.name, name: m.name, description: m.description||'', type: 'replicate', isVideo };
+            });
+            foundModels.push(...mapped);
             cursor = data.next;
             if(!cursor) break;
           }
+          // Sort: video-relevan di atas
+          foundModels.sort((a,b) => (b.isVideo?1:0) - (a.isVideo?1:0));
         } else {
           // OpenAI-compatible scan
           const url = `/api/proxy?path=/models&baseUrl=${encodeURIComponent(p.baseUrl)}`;
           const res = await fetch(url, { headers: { 'Authorization': auth } });
+          debugInfo.status = res.status + ' ' + res.statusText;
           const data = await res.json();
-          const models = data.data || data.models || data.results || [];
-          const videoModels = models.filter(m => {
-            const id = (m.id||m.name||'').toLowerCase();
-            return id.includes('video') || id.includes('vision') || id.includes('dall') || id.includes('image') || id.includes('sd') || id.includes('stable');
-          }).map(m=>({ id: m.id||m.name, name: m.id||m.name, description: m.description||m.object||'', type: 'openai' }));
-          foundModels.push(...videoModels);
+          debugInfo.raw = data;
+
+          if(!res.ok) {
+            debugInfo.error = data.detail || data.error || JSON.stringify(data).slice(0,200);
+          } else {
+            const models = data.data || data.models || data.results || [];
+            foundModels = models.map(m => {
+              const id = (m.id||m.name||'').toLowerCase();
+              const isVideo = id.includes('video') || id.includes('vision') || id.includes('dall') || id.includes('image') || id.includes('sd') || id.includes('stable');
+              return { id: m.id||m.name, name: m.id||m.name, description: m.description||m.object||'', type: 'openai', isVideo };
+            }).sort((a,b) => (b.isVideo?1:0) - (a.isVideo?1:0));
+          }
         }
       } catch(e) {
-        results.innerHTML = `<div style="color:var(--pink)">Error: ${e.message}</div>`;
-        btn.disabled = false; btn.innerHTML = '🔍 Scan Model'; return;
+        debugInfo.error = e.message;
+      }
+
+      // Fallback preset untuk Replicate kalau scan kosong atau error
+      if(p.type==='replicate' && foundModels.length===0) {
+        foundModels = [
+          { id: 'ali-vilab/text-to-video-ms-1.7b', name: 'ali-vilab/text-to-video-ms-1.7b', description: 'ModelScope Text-to-Video', type: 'replicate', isVideo: true },
+          { id: 'anotherjesse/zeroscope-v2-xl', name: 'anotherjesse/zeroscope-v2-xl', description: 'Zeroscope v2 XL — high quality video', type: 'replicate', isVideo: true },
+          { id: 'lucataco/animate-diff', name: 'lucataco/animate-diff', description: 'AnimateDiff — animated images', type: 'replicate', isVideo: true },
+          { id: 'stability-ai/stable-video-diffusion', name: 'stability-ai/stable-video-diffusion', description: 'Stable Video Diffusion — image to video', type: 'replicate', isVideo: true },
+          { id: 'stability-ai/svd', name: 'stability-ai/svd', description: 'SVD — Stable Video Diffusion', type: 'replicate', isVideo: true },
+          { id: 'cjwbw/damo-text-to-video', name: 'cjwbw/damo-text-to-video', description: 'Damo Text-to-Video', type: 'replicate', isVideo: true },
+        ];
       }
 
       // Save to provider
@@ -659,17 +691,33 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(providers));
       }
 
-      if(!foundModels.length) {
-        results.innerHTML = `<div style="color:var(--text-secondary)">Tidak ditemukan model video. Coba tambahkan model secara manual di tab Providers (Edit).</div>`;
-      } else {
+      if(debugInfo.error) {
         results.innerHTML = `
-          <div style="margin-bottom:10px;font-weight:700;color:var(--green)">${foundModels.length} model ditemukan</div>
+          <div style="color:var(--pink);margin-bottom:12px">
+            <strong>Error API:</strong> ${debugInfo.error}
+          </div>
+          <details style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;border:1px solid var(--border)">
+            <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-secondary);font-weight:600">Debug Info</summary>
+            <div style="margin-top:10px;font-size:0.78rem;color:var(--text-secondary);font-family:monospace;white-space:pre-wrap;overflow-wrap:break-word">Status: ${debugInfo.status}
+Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
+          </details>
+        `;
+      } else if(!foundModels.length) {
+        results.innerHTML = `<div style="color:var(--text-secondary)">Tidak ditemukan model dari API. Coba tambahkan model manual di Edit Provider.</div>`;
+      } else {
+        const videoCount = foundModels.filter(m=>m.isVideo).length;
+        results.innerHTML = `
+          <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-weight:700;color:var(--green)">${foundModels.length} model ditemukan</span>
+            ${videoCount>0?`<span class="tag tag-green">${videoCount} video-related</span>`:''}
+          </div>
           <div class="model-grid">
-            ${foundModels.map(m=>`<div class="model-item"><div class="model-item-radio"></div><div class="model-item-name" title="${m.description}">${m.name}</div></div>`).join('')}
+            ${foundModels.map(m=>`<div class="model-item" style="${m.isVideo?'border-color:rgba(0,229,160,0.3);background:rgba(0,229,160,0.05)':''}"><div class="model-item-radio" style="${m.isVideo?'border-color:var(--green);background:var(--green)':''}"></div><div class="model-item-name" title="${m.description}">${m.name}</div>${m.isVideo?'<span style="font-size:0.7rem;color:var(--green);margin-left:auto;flex-shrink:0">🎬</span>':''}</div>`).join('')}
           </div>
         `;
       }
-      btn.disabled = false; btn.innerHTML = '🔍 Scan Lagi';
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Scan Lagi';
       showToast(`${foundModels.length} model ditemukan`);
     }
 
