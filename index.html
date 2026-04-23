@@ -894,8 +894,14 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
           await generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
         } else if(p.type === 'segmind') {
           await generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth, imageBase64);
+        } else if(p.type === 'xai') {
+          showToast('❌ xAI / Grok belum memiliki API text-to-video maupun image-to-video. Mereka hanya punya text chat dan image generation.','error');
+          throw new Error('xAI does not support video');
+        } else if(p.type === 'runway') {
+          showToast('❌ RunwayML belum diimplementasikan. Gunakan Replicate untuk image-to-video (model SVD).','error');
+          throw new Error('Runway not implemented');
         } else {
-          showToast('Provider '+p.type+' belum support text-to-video. Gunakan Replicate, Fal.ai, HuggingFace, atau Segmind.','error');
+          showToast('❌ Provider '+p.type+' belum support video generation. Gunakan Replicate, Fal.ai, HuggingFace, atau Segmind.','error');
           throw new Error('Provider not supported');
         }
       } catch(err) {
