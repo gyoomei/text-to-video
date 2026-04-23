@@ -342,8 +342,9 @@
             <div>Belum ada provider. Tambahkan provider pertama-mu!</div>
           </div>
         </div>
-        <div style="margin-top:20px;text-align:center">
+        <div style="margin-top:20px;text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="openProviderModal()">+ Tambah Provider</button>
+          <button class="btn btn-secondary" onclick="resetProviderCache()">🧹 Reset Provider Cache</button>
         </div>
       </div>
     </div>
@@ -604,6 +605,19 @@
         renderProviderList();
         showToast('Model dihapus dari provider');
       }
+    }
+
+    function resetProviderCache() {
+      if(!confirm('Reset semua provider tersimpan? Ini akan menghapus semua provider dan model hasil scan.')) return;
+      providers = [];
+      localStorage.removeItem(STORAGE_KEY);
+      renderProviderList();
+      populateGenProviders();
+      $('genProvider').value = '';
+      $('modelSelectWrap').style.display = 'none';
+      $('promptPanel').style.display = 'none';
+      $('genBtn').style.display = 'none';
+      showToast('Provider cache direset');
     }
 
     async function testProviderConnection() {
