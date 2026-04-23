@@ -3,863 +3,870 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Text2Video — AI Video Generator</title>
+  <title>Text2Video — Universal AI Video Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #030508;
-      --surface: rgba(10, 13, 18, 0.65);
-      --surface-hover: rgba(15, 20, 28, 0.8);
+      --surface: rgba(10,13,18,0.65);
+      --surface-hover: rgba(15,20,28,0.8);
       --border: rgba(255,255,255,0.1);
       --border-hover: rgba(255,255,255,0.25);
       --text: #f0f2f5;
       --text-secondary: #8a8f98;
-      --accent-green: #00e5a0;
-      --accent-blue: #00d4ff;
-      --accent-purple: #a855f7;
-      --accent-orange: #fb923c;
-      --accent-pink: #f472b6;
-      --accent-yellow: #facc15;
-      --accent-red: #f87171;
-      --danger: #ff4757;
-      --star: #ffd700;
+      --green: #00e5a0;
+      --blue: #00d4ff;
+      --purple: #a855f7;
+      --orange: #fb923c;
+      --pink: #f472b6;
+      --yellow: #facc15;
+      --red: #f87171;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      line-height: 1.5;
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter',system-ui,-apple-system,sans-serif;
+      line-height: 1.5; min-height: 100vh; overflow-x: hidden; position: relative;
     }
-
     body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(ellipse at 20% 20%, rgba(0,229,160,0.08) 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 80%, rgba(168,85,247,0.08) 0%, transparent 50%),
-                  radial-gradient(ellipse at 50% 50%, rgba(0,212,255,0.05) 0%, transparent 50%);
-      z-index: 0;
-      pointer-events: none;
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 20% 20%,rgba(0,229,160,0.08) 0%,transparent 50%),
+                  radial-gradient(ellipse at 80% 80%,rgba(168,85,247,0.08) 0%,transparent 50%),
+                  radial-gradient(ellipse at 50% 50%,rgba(0,212,255,0.05) 0%,transparent 50%);
+      z-index: 0; pointer-events: none;
     }
-
-    .orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.4;
-      pointer-events: none;
-      z-index: 0;
-      animation: float 18s ease-in-out infinite;
-    }
-    .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,229,160,0.35), transparent 70%); top: -150px; left: -100px; animation-delay: 0s; }
-    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(0,212,255,0.3), transparent 70%); top: 30%; right: -150px; animation-delay: -6s; }
-    .orb-3 { width: 450px; height: 450px; background: radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%); bottom: -100px; left: 20%; animation-delay: -12s; }
-    .orb-4 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(251,146,60,0.25), transparent 70%); top: 60%; left: -80px; animation-delay: -9s; animation-duration: 25s; }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(40px, -40px) scale(1.08); }
-      66% { transform: translate(-30px, 30px) scale(0.92); }
-    }
-
-    .noise {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      opacity: 0.02; z-index: 1; pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-    }
-
-    .container {
-      position: relative; z-index: 2;
-      max-width: 900px; margin: 0 auto;
-      padding: 40px 20px;
-    }
+    .orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.4; pointer-events: none; z-index: 0; animation: float 18s ease-in-out infinite; }
+    .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle,rgba(0,229,160,0.35),transparent 70%); top: -150px; left: -100px; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle,rgba(0,212,255,0.3),transparent 70%); top: 30%; right: -150px; animation-delay: -6s; }
+    .orb-3 { width: 450px; height: 450px; background: radial-gradient(circle,rgba(168,85,247,0.25),transparent 70%); bottom: -100px; left: 20%; animation-delay: -12s; }
+    @keyframes float { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(40px,-40px) scale(1.08)} 66%{transform:translate(-30px,30px) scale(0.92)} }
+    .noise { position: fixed; inset: 0; opacity: 0.02; z-index: 1; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); }
+    .container { position: relative; z-index: 2; max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
 
     /* Hero */
-    .hero {
-      text-align: center; margin-bottom: 40px;
-      animation: fadeInUp 0.8s ease-out;
+    .hero { text-align: center; margin-bottom: 32px; animation: fadeInUp 0.8s ease-out; }
+    .hero h1 { font-size: clamp(2rem,5.5vw,3.2rem); font-weight: 900; letter-spacing: -2px; line-height: 1; margin-bottom: 10px;
+      background: linear-gradient(135deg,#fff 0%,var(--green) 35%,var(--blue) 65%,var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; background-size: 200% auto; animation: gradient-shift 5s ease infinite;
     }
-    .hero h1 {
-      font-size: clamp(2.2rem, 6vw, 3.5rem);
-      font-weight: 900; letter-spacing: -2px; line-height: 1;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, #fff 0%, var(--accent-green) 35%, var(--accent-blue) 65%, var(--accent-purple) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      background-size: 200% auto; animation: gradient-shift 5s ease infinite;
+    @keyframes gradient-shift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    .hero p { color: var(--text-secondary); font-size: 0.95rem; max-width: 520px; margin: 0 auto; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; animation: fadeInUp 0.6s ease-out 0.1s both; justify-content: center; }
+    .tab {
+      padding: 10px 22px; border-radius: 12px; border: 1px solid var(--border); background: rgba(10,13,18,0.5);
+      color: var(--text-secondary); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.25s ease;
+      backdrop-filter: blur(8px); font-family: inherit;
     }
-    @keyframes gradient-shift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    .hero p {
-      color: var(--text-secondary); font-size: 1rem;
-      max-width: 480px; margin: 0 auto; line-height: 1.6;
+    .tab:hover { border-color: var(--border-hover); color: var(--text); background: rgba(255,255,255,0.06); }
+    .tab.active {
+      background: linear-gradient(135deg,rgba(0,229,160,0.15),rgba(0,212,255,0.15));
+      border-color: rgba(0,229,160,0.3); color: var(--green);
+      box-shadow: 0 0 20px rgba(0,229,160,0.08);
     }
 
-    /* Glass Panel */
+    /* Panel */
     .panel {
-      background: linear-gradient(135deg, rgba(15, 20, 30, 0.8), rgba(8, 10, 18, 0.9));
-      backdrop-filter: blur(16px) saturate(1.3);
-      border: 1px solid transparent;
-      background-clip: padding-box;
-      border-radius: 24px; padding: 28px;
-      position: relative; overflow: hidden;
-      margin-bottom: 24px;
-      animation: fadeInUp 0.6s ease-out both;
+      background: linear-gradient(135deg,rgba(15,20,30,0.8),rgba(8,10,18,0.9));
+      backdrop-filter: blur(16px) saturate(1.3); border-radius: 24px; padding: 28px;
+      position: relative; overflow: hidden; margin-bottom: 20px;
+      animation: fadeInUp 0.5s ease-out both; border: 1px solid transparent; background-clip: padding-box;
     }
     .panel::before {
       content: ''; position: absolute; inset: -1px; border-radius: 24px; padding: 1px;
-      background: linear-gradient(135deg, rgba(0,229,160,0.25), rgba(0,212,255,0.2), rgba(168,85,247,0.15));
+      background: linear-gradient(135deg,rgba(0,229,160,0.2),rgba(0,212,255,0.15),rgba(168,85,247,0.12));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      opacity: 0.6; pointer-events: none;
+      -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0.5; pointer-events: none;
     }
+    .panel-title { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+    .panel-title.green { color: var(--green) } .panel-title.blue { color: var(--blue) } .panel-title.purple { color: var(--purple) } .panel-title.orange { color: var(--orange) }
 
-    .panel-title {
-      font-size: 0.85rem; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
-    }
-    .panel-title.green { color: var(--accent-green); }
-    .panel-title.blue { color: var(--accent-blue); }
-    .panel-title.purple { color: var(--accent-purple); }
-    .panel-title.orange { color: var(--accent-orange); }
-
-    /* Form Elements */
-    .form-group { margin-bottom: 20px; }
+    /* Form */
+    .form-group { margin-bottom: 18px; }
     .form-group:last-child { margin-bottom: 0; }
-    .form-label {
-      display: block; font-size: 0.8rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.8px;
-      color: var(--text-secondary); margin-bottom: 8px;
-    }
+    .form-label { display: block; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary); margin-bottom: 8px; }
     .form-input, .form-select, .form-textarea {
-      width: 100%; padding: 14px 16px;
-      background: rgba(10, 13, 18, 0.6);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border); border-radius: 14px;
-      color: var(--text); font-size: 0.95rem; font-family: inherit;
-      outline: none; transition: all 0.3s ease;
+      width: 100%; padding: 14px 16px; background: rgba(10,13,18,0.6); backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-size: 0.95rem; font-family: inherit; outline: none; transition: all 0.3s ease;
     }
-    .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px rgba(0,212,255,0.1), 0 0 20px rgba(0,212,255,0.05);
-      background: rgba(10, 13, 18, 0.8);
-    }
-    .form-input::placeholder, .form-textarea::placeholder { color: var(--text-secondary); opacity: 0.6; }
-    .form-textarea { min-height: 100px; resize: vertical; line-height: 1.6; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,212,255,0.1), 0 0 20px rgba(0,212,255,0.05); background: rgba(10,13,18,0.8); }
+    .form-input::placeholder, .form-textarea::placeholder { color: var(--text-secondary); opacity: 0.5; }
+    .form-textarea { min-height: 90px; resize: vertical; line-height: 1.6; }
     .form-select { cursor: pointer; appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a8f98' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 16px center;
-      padding-right: 40px;
+      background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px;
     }
     .form-select option { background: #0a0d12; color: var(--text); }
-
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
-
-    .hint {
-      font-size: 0.78rem; color: var(--text-secondary);
-      margin-top: 6px; line-height: 1.5;
-    }
-    .hint a { color: var(--accent-blue); text-decoration: none; }
-    .hint a:hover { text-decoration: underline; }
-
-    /* Toggle Switch */
-    .toggle-wrap {
-      display: flex; align-items: center; gap: 12px;
-      cursor: pointer; user-select: none;
-    }
-    .toggle-switch {
-      width: 44px; height: 24px;
-      background: var(--border); border-radius: 999px;
-      position: relative; transition: all 0.3s ease;
-      flex-shrink: 0;
-    }
-    .toggle-switch::after {
-      content: ''; position: absolute; width: 18px; height: 18px;
-      background: var(--text); border-radius: 50%;
-      top: 3px; left: 3px; transition: all 0.3s ease;
-    }
-    .toggle-input:checked + .toggle-switch {
-      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-    }
-    .toggle-input:checked + .toggle-switch::after {
-      left: 23px; background: #fff;
-    }
-    .toggle-input { display: none; }
-    .toggle-label { font-size: 0.9rem; font-weight: 500; color: var(--text); }
-
-    /* Range Slider */
-    .range-wrap { display: flex; align-items: center; gap: 16px; }
-    .range-input {
-      flex: 1; -webkit-appearance: none; appearance: none;
-      height: 6px; background: var(--border); border-radius: 999px;
-      outline: none;
-    }
-    .range-input::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      width: 20px; height: 20px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-      cursor: pointer; border: 2px solid var(--bg);
-      box-shadow: 0 0 10px rgba(0,229,160,0.3);
-    }
-    .range-value {
-      min-width: 32px; text-align: center;
-      font-weight: 800; font-size: 1.1rem;
-      color: var(--accent-green);
-    }
+    .hint { font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; }
 
     /* Buttons */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 16px 32px; border-radius: 16px; border: none;
-      font-size: 1rem; font-weight: 700; font-family: inherit;
-      cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden;
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 14px; border: none; font-size: 0.95rem; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
+    .btn-primary { background: linear-gradient(135deg,var(--green),var(--blue)); color: #000; box-shadow: 0 8px 30px rgba(0,229,160,0.2); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,229,160,0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-secondary { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid var(--border); padding: 10px 18px; font-size: 0.88rem; }
+    .btn-secondary:hover { background: rgba(255,255,255,0.12); border-color: var(--border-hover); }
+    .btn-sm { padding: 8px 14px; font-size: 0.8rem; border-radius: 10px; }
+    .btn-danger { background: rgba(244,114,182,0.1); color: var(--pink); border: 1px solid rgba(244,114,182,0.2); }
+    .btn-danger:hover { background: rgba(244,114,182,0.2); }
+    .btn-icon { width: 34px; height: 34px; padding: 0; border-radius: 10px; }
+
+    /* Provider Card */
+    .provider-list { display: flex; flex-direction: column; gap: 12px; }
+    .provider-card {
+      background: rgba(10,13,18,0.5); border: 1px solid var(--border); border-radius: 18px;
+      padding: 20px; display: flex; align-items: flex-start; gap: 16px; transition: all 0.3s ease;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-      color: #000; width: 100%;
-      box-shadow: 0 8px 30px rgba(0,229,160,0.2);
+    .provider-card:hover { border-color: var(--border-hover); background: rgba(15,20,28,0.6); }
+    .provider-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 1.4rem; flex-shrink: 0; background: linear-gradient(135deg,rgba(0,229,160,0.1),rgba(0,212,255,0.1)); border: 1px solid rgba(255,255,255,0.08); }
+    .provider-info { flex: 1; min-width: 0; }
+    .provider-name { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+    .provider-url { font-size: 0.78rem; color: var(--text-secondary); word-break: break-all; }
+    .provider-meta { font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .provider-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tag { font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .tag-green { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid rgba(0,229,160,0.15); }
+    .tag-blue { background: rgba(0,212,255,0.1); color: var(--blue); border: 1px solid rgba(0,212,255,0.15); }
+    .tag-orange { background: rgba(251,146,60,0.1); color: var(--orange); border: 1px solid rgba(251,146,60,0.15); }
+    .tag-purple { background: rgba(168,85,247,0.1); color: var(--purple); border: 1px solid rgba(168,85,247,0.15); }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: linear-gradient(135deg,rgba(15,20,30,0.95),rgba(8,10,18,0.98)); border: 1px solid var(--border); border-radius: 24px; padding: 28px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-weight: 800; font-size: 1.1rem; }
+    .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 1.4rem; cursor: pointer; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; transition: all 0.2s; }
+    .modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+    /* Model List */
+    .model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 10px; margin-top: 14px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+    .model-item {
+      background: rgba(10,13,18,0.5); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px;
     }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0,229,160,0.3);
-    }
-    .btn-primary:disabled {
-      opacity: 0.6; cursor: not-allowed; transform: none;
-      box-shadow: none;
-    }
-    .btn-secondary {
-      background: rgba(255,255,255,0.08); color: var(--text);
-      border: 1px solid var(--border); padding: 10px 20px; font-size: 0.9rem;
-    }
-    .btn-secondary:hover {
-      background: rgba(255,255,255,0.12); border-color: var(--border-hover);
-    }
+    .model-item:hover { border-color: var(--green); background: rgba(0,229,160,0.05); }
+    .model-item.selected { border-color: var(--green); background: rgba(0,229,160,0.1); }
+    .model-item-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: grid; place-items: center; transition: all 0.2s; }
+    .model-item.selected .model-item-radio { border-color: var(--green); background: var(--green); }
+    .model-item-name { font-weight: 600; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Progress */
-    .progress-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 16px; margin-top: 20px;
-    }
-    .progress-card {
-      background: linear-gradient(135deg, rgba(15, 20, 30, 0.7), rgba(8, 10, 18, 0.8));
-      border: 1px solid var(--border); border-radius: 20px;
-      padding: 20px; position: relative; overflow: hidden;
-      transition: all 0.3s ease;
-    }
-    .progress-card:hover { border-color: var(--border-hover); }
-    .progress-card.success { border-color: rgba(0,229,160,0.3); }
-    .progress-card.error { border-color: rgba(244,114,182,0.3); }
+    .progress-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 14px; margin-top: 18px; }
+    .progress-card { background: rgba(10,13,18,0.5); border: 1px solid var(--border); border-radius: 18px; padding: 18px; transition: all 0.3s; }
+    .progress-card.success { border-color: rgba(0,229,160,0.3); } .progress-card.error { border-color: rgba(244,114,182,0.3); }
+    .progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .progress-title { font-weight: 700; font-size: 0.92rem; }
+    .progress-status { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 999px; }
+    .status-starting { background: rgba(0,212,255,0.1); color: var(--blue); }
+    .status-processing { background: rgba(250,204,21,0.1); color: var(--yellow); }
+    .status-succeeded { background: rgba(0,229,160,0.1); color: var(--green); }
+    .status-failed { background: rgba(244,114,182,0.1); color: var(--pink); }
+    .progress-bar-wrap { height: 5px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
+    .progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg,var(--green),var(--blue)); transition: width 0.5s ease; width: 0%; }
+    .progress-meta { font-size: 0.75rem; color: var(--text-secondary); }
 
-    .progress-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .progress-title {
-      font-weight: 700; font-size: 0.95rem;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .progress-status {
-      font-size: 0.75rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      padding: 4px 10px; border-radius: 999px;
-    }
-    .status-starting { background: rgba(0,212,255,0.1); color: var(--accent-blue); }
-    .status-processing { background: rgba(250,204,21,0.1); color: var(--accent-yellow); }
-    .status-succeeded { background: rgba(0,229,160,0.1); color: var(--accent-green); }
-    .status-failed { background: rgba(244,114,182,0.1); color: var(--accent-pink); }
-
-    .progress-bar-wrap {
-      height: 6px; background: rgba(255,255,255,0.05);
-      border-radius: 999px; overflow: hidden; margin-bottom: 10px;
-    }
-    .progress-bar {
-      height: 100%; border-radius: 999px;
-      background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
-      transition: width 0.5s ease;
-      width: 0%;
-    }
-    .progress-meta {
-      font-size: 0.78rem; color: var(--text-secondary);
-    }
-
-    /* Video Gallery */
-    .gallery-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px; margin-top: 20px;
-    }
-    .video-card {
-      background: linear-gradient(135deg, rgba(15, 20, 30, 0.8), rgba(8, 10, 18, 0.9));
-      border: 1px solid var(--border); border-radius: 20px;
-      overflow: hidden; transition: all 0.35s ease;
-      position: relative;
-    }
-    .video-card::before {
-      content: ''; position: absolute; inset: -1px; border-radius: 20px; padding: 1px;
-      background: linear-gradient(135deg, rgba(0,229,160,0.2), rgba(0,212,255,0.15));
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      opacity: 0.5; pointer-events: none;
-    }
-    .video-card:hover {
-      transform: translateY(-4px) scale(1.01);
-      border-color: var(--border-hover);
-      box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
-    }
-    .video-card:hover::before { opacity: 1; }
-
-    .video-player {
-      width: 100%; aspect-ratio: 16/9;
-      background: #000; display: block;
-      border-bottom: 1px solid var(--border);
-    }
-    .video-info {
-      padding: 16px;
-    }
-    .video-title {
-      font-weight: 700; font-size: 0.95rem;
-      margin-bottom: 4px; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap;
-    }
-    .video-meta {
-      font-size: 0.78rem; color: var(--text-secondary);
-      margin-bottom: 14px;
-    }
-    .video-actions {
-      display: flex; gap: 8px;
-    }
+    /* Gallery */
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap: 18px; margin-top: 18px; }
+    .video-card { background: rgba(10,13,18,0.6); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; transition: all 0.35s ease; }
+    .video-card:hover { transform: translateY(-4px); border-color: var(--border-hover); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5); }
+    .video-player { width: 100%; aspect-ratio: 16/9; background: #000; display: block; border-bottom: 1px solid var(--border); }
+    .video-info { padding: 16px; }
+    .video-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .video-meta { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px; }
+    .video-actions { display: flex; gap: 8px; }
     .video-actions .btn { flex: 1; padding: 10px; font-size: 0.85rem; }
 
     /* Spinner */
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid rgba(0,0,0,0.2);
-      border-top-color: #000; border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Section Title */
-    .section-title {
-      font-size: 0.85rem; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1px;
-      margin: 32px 0 16px; display: flex; align-items: center; gap: 10px;
-    }
+    .section-title { font-size: 0.82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 14px; }
+
+    /* Empty */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 10px; opacity: 0.5; }
 
     /* Toast */
-    .toast-container {
-      position: fixed; bottom: 24px; right: 24px;
-      z-index: 9999; display: flex; flex-direction: column; gap: 10px;
-      pointer-events: none;
-    }
-    .toast {
-      background: linear-gradient(135deg, rgba(15, 20, 30, 0.95), rgba(8, 10, 18, 0.98));
-      backdrop-filter: blur(20px); border: 1px solid var(--border-hover);
-      border-radius: 14px; padding: 14px 20px;
-      color: var(--text); font-size: 0.92rem; font-weight: 600;
-      box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-      display: flex; align-items: center; gap: 12px;
-      transform: translateX(120%); opacity: 0;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: auto; min-width: 240px;
-    }
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { background: linear-gradient(135deg,rgba(15,20,30,0.95),rgba(8,10,18,0.98)); border: 1px solid var(--border-hover); border-radius: 14px; padding: 14px 20px; color: var(--text); font-size: 0.9rem; font-weight: 600; box-shadow: 0 15px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateX(120%); opacity: 0; transition: all 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events: auto; min-width: 240px; }
     .toast.show { transform: translateX(0); opacity: 1; }
-    .toast-icon {
-      width: 28px; height: 28px; border-radius: 50%;
-      display: grid; place-items: center; font-size: 0.85rem; flex-shrink: 0;
-    }
-    .toast-success .toast-icon { background: rgba(0,229,160,0.15); color: var(--accent-green); box-shadow: 0 0 10px rgba(0,229,160,0.2); }
-    .toast-error .toast-icon { background: rgba(244,114,182,0.15); color: var(--accent-pink); box-shadow: 0 0 10px rgba(244,114,182,0.2); }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center; padding: 40px 20px; color: var(--text-secondary);
-    }
-    .empty-state-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+    .toast-icon { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 0.85rem; flex-shrink: 0; }
+    .toast-success .toast-icon { background: rgba(0,229,160,0.15); color: var(--green); box-shadow: 0 0 10px rgba(0,229,160,0.2); }
+    .toast-error .toast-icon { background: rgba(244,114,182,0.15); color: var(--pink); box-shadow: 0 0 10px rgba(244,114,182,0.2); }
 
     /* Footer */
-    footer {
-      text-align: center; margin-top: 40px; padding-top: 24px;
-      border-top: 1px solid var(--border);
-    }
-    .footer-text { color: var(--text-secondary); font-size: 0.8rem; }
+    footer { text-align: center; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .footer-text { color: var(--text-secondary); font-size: 0.78rem; }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--accent-green), var(--accent-blue)); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg,var(--green),var(--blue)); border-radius: 4px; }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
     @media (max-width: 640px) {
-      .container { padding: 24px 16px; }
+      .container { padding: 20px 16px; }
       .panel { padding: 20px; border-radius: 20px; }
-      .gallery-grid { grid-template-columns: 1fr; }
-      .progress-grid { grid-template-columns: 1fr; }
+      .gallery-grid, .progress-grid, .model-grid { grid-template-columns: 1fr; }
+      .provider-card { flex-direction: column; gap: 12px; }
+      .provider-actions { width: 100%; }
       .toast-container { right: 16px; bottom: 16px; left: 16px; }
       .toast { min-width: unset; width: 100%; }
     }
-
-    ::selection {
-      background: linear-gradient(135deg, rgba(0,229,160,0.3), rgba(0,212,255,0.3));
-      color: #fff;
-    }
+    ::selection { background: linear-gradient(135deg,rgba(0,229,160,0.3),rgba(0,212,255,0.3)); color: #fff; }
   </style>
 </head>
 <body>
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
   <div class="orb orb-3"></div>
-  <div class="orb orb-4"></div>
   <div class="noise"></div>
 
   <div class="container">
     <header class="hero">
       <h1>Text2Video</h1>
-      <p>Generate video dari teks pakai AI. Pakai API key Replicate-mu, pilih model, dan generate 1-3 video sekaligus.</p>
+      <p>Universal AI Video Generator. Tambahkan provider API-mu, scan model, dan generate video.</p>
     </header>
 
-    <!-- API Key Panel -->
-    <div class="panel" style="animation-delay:0.1s">
-      <div class="panel-title green">🔑 API Key</div>
-      <div class="form-group">
-        <label class="form-label">Replicate API Token</label>
-        <input type="password" class="form-input" id="apiKey" placeholder="r8_xxxxxxxxxxxxxxxx">
-        <div class="hint">Ambil API key di <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener">replicate.com/account/api-tokens</a> (gratis $5 credit untuk mulai)</div>
-      </div>
-    </div>
+    <nav class="tabs">
+      <button class="tab active" onclick="switchTab('generate')">🎬 Generate</button>
+      <button class="tab" onclick="switchTab('providers')">🔌 Providers</button>
+      <button class="tab" onclick="switchTab('about')">ℹ️ About</button>
+    </nav>
 
-    <!-- Model Panel -->
-    <div class="panel" style="animation-delay:0.15s">
-      <div class="panel-title blue">⚙️ Model</div>
-      <div class="form-group">
-        <label class="form-label">Pilih Model</label>
-        <select class="form-select" id="modelSelect">
-          <option value="ali-vilab/text-to-video-ms-1.7b">ModelScope T2V (Cepat, dasar)</option>
-          <option value="anotherjesse/zeroscope-v2-xl">Zeroscope v2 XL (Kualitas lebih baik)</option>
-          <option value="lucataco/animate-diff">AnimateDiff (Anime style)</option>
-          <option value="stability-ai/stable-video-diffusion">Stable Video Diffusion (Image→Video)</option>
-          <option value="custom">Custom Model...</option>
-        </select>
-      </div>
-      <div class="form-group" id="customModelWrap" style="display:none">
-        <label class="form-label">Custom Model (owner/model)</label>
-        <input type="text" class="form-input" id="customModel" placeholder="contoh: stability-ai/stable-video-diffusion">
-      </div>
-    </div>
-
-    <!-- Prompt Panel -->
-    <div class="panel" style="animation-delay:0.2s">
-      <div class="panel-title purple">✨ Prompt</div>
-      <div class="form-group">
-        <label class="form-label">Deskripsi Video</label>
-        <textarea class="form-textarea" id="promptInput" placeholder="Contoh: A serene lake surrounded by mountains at sunset, camera slowly panning across the water..."></textarea>
-        <div class="hint">Deskripsikan scene yang mau dibuat. Semakin detail, semakin baik hasilnya.</div>
-      </div>
-
-      <div class="form-row">
+    <!-- ===== GENERATE TAB ===== -->
+    <div id="tab-generate">
+      <div class="panel">
+        <div class="panel-title green">1. Pilih Provider & Model</div>
         <div class="form-group">
-          <label class="form-label">Jumlah Video</label>
-          <div class="range-wrap">
-            <input type="range" class="range-input" id="numVideos" min="1" max="3" value="1">
-            <span class="range-value" id="numVideosValue">1</span>
+          <label class="form-label">Provider</label>
+          <select class="form-select" id="genProvider" onchange="onProviderChange()">
+            <option value="">-- Pilih provider --</option>
+          </select>
+          <div class="hint">Belum ada provider? Pergi ke tab <strong>Providers</strong> untuk menambahkan.</div>
+        </div>
+        <div class="form-group" id="modelSelectWrap" style="display:none">
+          <label class="form-label">Model</label>
+          <select class="form-select" id="genModel" onchange="onModelChange()">
+            <option value="">-- Pilih model --</option>
+          </select>
+          <div class="hint" id="modelHint"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="promptPanel" style="display:none">
+        <div class="panel-title blue">2. Prompt</div>
+        <div class="form-group">
+          <label class="form-label">Deskripsi Video</label>
+          <textarea class="form-textarea" id="genPrompt" placeholder="Contoh: A serene lake surrounded by mountains at sunset, camera slowly panning across the water..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Jumlah Video</label>
+            <div style="display:flex;align-items:center;gap:12px">
+              <input type="range" id="genNumVideos" min="1" max="3" value="1" style="flex:1;-webkit-appearance:none;height:5px;background:var(--border);border-radius:999px;outline:none" oninput="document.getElementById('genNumVal').textContent=this.value">
+              <span id="genNumVal" style="font-weight:800;color:var(--green);min-width:20px;text-align:center">1</span>
+            </div>
           </div>
-          <div class="hint">Generate 1-3 video dari prompt sama</div>
+          <div class="form-group">
+            <label class="form-label">Seed (Opsional)</label>
+            <input type="number" class="form-input" id="genSeed" placeholder="Random">
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Seed (Opsional)</label>
-          <input type="number" class="form-input" id="seedInput" placeholder="Random">
-          <div class="hint">Seed sama = hasil lebih konsisten</div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="genSameSeed" checked style="width:18px;height:18px;accent-color:var(--green)">
+            <span style="font-size:0.9rem">Gunakan seed sama untuk semua video</span>
+          </label>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="toggle-wrap">
-          <input type="checkbox" class="toggle-input" id="sameSeedCheck" checked>
-          <span class="toggle-switch"></span>
-          <span class="toggle-label">Gunakan seed sama untuk semua video</span>
-        </label>
+      <button class="btn btn-primary" id="genBtn" onclick="generateVideos()" style="display:none;width:100%">
+        <span id="genBtnText">🎬 Generate Video</span>
+      </button>
+
+      <div id="progressSection" style="display:none">
+        <div class="section-title" style="color:var(--yellow)">⏳ Progress</div>
+        <div class="progress-grid" id="progressGrid"></div>
+      </div>
+
+      <div id="gallerySection" style="display:none">
+        <div class="section-title" style="color:var(--green)">🎉 Hasil Video</div>
+        <div class="gallery-grid" id="galleryGrid"></div>
       </div>
     </div>
 
-    <!-- Generate -->
-    <button class="btn btn-primary" id="generateBtn" onclick="generateVideos()">
-      <span id="btnText">🎬 Generate Video</span>
-    </button>
-
-    <!-- Progress Section -->
-    <div id="progressSection" style="display:none">
-      <div class="section-title" style="color:var(--accent-yellow)">⏳ Progress</div>
-      <div class="progress-grid" id="progressGrid"></div>
+    <!-- ===== PROVIDERS TAB ===== -->
+    <div id="tab-providers" style="display:none">
+      <div class="panel">
+        <div class="panel-title green">🔌 Provider Tersimpan</div>
+        <div id="providerList" class="provider-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">🔌</div>
+            <div>Belum ada provider. Tambahkan provider pertama-mu!</div>
+          </div>
+        </div>
+        <div style="margin-top:20px;text-align:center">
+          <button class="btn btn-primary" onclick="openProviderModal()">+ Tambah Provider</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Gallery Section -->
-    <div id="gallerySection" style="display:none">
-      <div class="section-title" style="color:var(--accent-green)">🎉 Hasil Video</div>
-      <div class="gallery-grid" id="galleryGrid"></div>
+    <!-- ===== ABOUT TAB ===== -->
+    <div id="tab-about" style="display:none">
+      <div class="panel">
+        <div class="panel-title purple">ℹ️ Tentang Text2Video</div>
+        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;margin-bottom:16px">
+          Text2Video adalah frontend universal untuk generate video dari teks menggunakan berbagai AI provider.
+          Tidak ada backend — semua API call diproses melalui proxy Vercel agar aman dari CORS.
+        </p>
+        <div style="display:grid;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;padding:14px;background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid var(--border)">
+            <span style="font-size:1.3rem">🔑</span>
+            <div><div style="font-weight:700;font-size:0.9rem">API Key Aman</div><div style="font-size:0.8rem;color:var(--text-secondary)">Disimpan di localStorage browser-mu, tidak ke server</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:14px;background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid var(--border)">
+            <span style="font-size:1.3rem">🔍</span>
+            <div><div style="font-weight:700;font-size:0.9rem">Auto Scan Model</div><div style="font-size:0.8rem;color:var(--text-secondary)">Otomatis mendeteksi model text-to-video dari provider</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:14px;background:rgba(255,255,255,0.03);border-radius:14px;border:1px solid var(--border)">
+            <span style="font-size:1.3rem">🎬</span>
+            <div><div style="font-weight:700;font-size:0.9rem">1 Prompt = 1-3 Video</div><div style="font-size:0.8rem;color:var(--text-secondary)">Generate multiple video konsisten dari satu prompt</div></div>
+          </div>
+        </div>
+        <div style="margin-top:20px">
+          <div class="form-label">Provider yang Didukung</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span class="tag tag-green">Replicate</span>
+            <span class="tag tag-blue">RunwayML</span>
+            <span class="tag tag-purple">Fal.ai</span>
+            <span class="tag tag-orange">HuggingFace</span>
+            <span class="tag tag-green">Together</span>
+            <span class="tag tag-blue">Fireworks</span>
+            <span class="tag tag-purple">Groq</span>
+            <span class="tag tag-orange">OpenAI</span>
+            <span class="tag tag-green">Segmind</span>
+            <span class="tag tag-blue">DeepSeek</span>
+            <span class="tag tag-purple">Glif</span>
+            <span class="tag tag-orange">dan lainnya...</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <footer>
-      <p class="footer-text">Powered by Replicate API • Frontend-only proxy • API key tidak disimpan di server</p>
+      <p class="footer-text">Universal AI Video Generator • API key tetap di browser • Proxy-powered</p>
     </footer>
+  </div>
+
+  <!-- Provider Modal -->
+  <div class="modal-overlay" id="providerModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Tambah Provider</div>
+        <button class="modal-close" onclick="closeProviderModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nama Provider</label>
+        <input type="text" class="form-input" id="pName" placeholder="Contoh: Replicate Main">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipe Provider</label>
+        <select class="form-select" id="pType" onchange="onProviderTypeChange()">
+          <option value="replicate">Replicate (replicate.com)</option>
+          <option value="openai-compatible">OpenAI Compatible (Together, Fireworks, Groq, OpenAI, etc)</option>
+          <option value="fal">Fal.ai (fal.ai)</option>
+          <option value="runway">RunwayML (runwayml.com)</option>
+          <option value="huggingface">HuggingFace Inference (huggingface.co)</option>
+          <option value="segmind">Segmind (segmind.com)</option>
+          <option value="custom">Custom / Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Base URL</label>
+        <input type="text" class="form-input" id="pBaseUrl" placeholder="https://api.replicate.com/v1">
+        <div class="hint" id="pBaseUrlHint">Format: https://api.provider.com/v1</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">API Key</label>
+        <input type="password" class="form-input" id="pApiKey" placeholder="Paste API key di sini">
+        <div class="hint" id="pApiKeyHint">Token/API key dari dashboard provider</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Auth Header (opsional)</label>
+        <input type="text" class="form-input" id="pAuthHeader" placeholder="Bearer {key} atau Token {key}">
+        <div class="hint">Biarkan kosong untuk auto-detect berdasarkan tipe provider</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-secondary" onclick="closeProviderModal()">Batal</button>
+        <button class="btn btn-secondary" onclick="testProviderConnection()">🧪 Test Koneksi</button>
+        <button class="btn btn-primary" onclick="saveProvider()">Simpan Provider</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scan Modal -->
+  <div class="modal-overlay" id="scanModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title">🔍 Scan Model</div>
+        <button class="modal-close" onclick="closeScanModal()">&times;</button>
+      </div>
+      <div id="scanContent">
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:16px">Klik <strong>Scan</strong> untuk mencari model text-to-video dari provider ini.</p>
+        <button class="btn btn-primary" onclick="runModelScan()" id="scanBtn">🔍 Scan Model</button>
+        <div id="scanResults" style="margin-top:16px"></div>
+      </div>
+    </div>
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
-    // ========== STATE ==========
-    const state = {
-      apiKey: localStorage.getItem('t2v_apiKey') || '',
-      predictions: [],
-      videos: [],
-      isGenerating: false,
+    // ==================== STATE ====================
+    const STORAGE_KEY = 't2v_providers';
+    let providers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let currentTab = 'generate';
+    let editingProviderId = null;
+    let scanningProviderId = null;
+    let genState = { predictions: [], isGenerating: false };
+
+    const PROVIDER_PRESETS = {
+      replicate: { baseUrl: 'https://api.replicate.com/v1', authHeader: 'Token {key}', modelsPath: '/models', createPath: '/predictions', scanMethod: 'replicate' },
+      'openai-compatible': { baseUrl: 'https://api.openai.com/v1', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/chat/completions', scanMethod: 'openai' },
+      fal: { baseUrl: 'https://api.fal.ai', authHeader: 'Key {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
+      runway: { baseUrl: 'https://api.runwayml.com/v1', authHeader: 'Bearer {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
+      huggingface: { baseUrl: 'https://api-inference.huggingface.co', authHeader: 'Bearer {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
+      segmind: { baseUrl: 'https://api.segmind.com/v1', authHeader: 'Bearer {key}', modelsPath: '', createPath: '', scanMethod: 'none' },
+      custom: { baseUrl: '', authHeader: 'Bearer {key}', modelsPath: '/models', createPath: '/generate', scanMethod: 'openai' },
     };
 
-    // ========== DOM ==========
-    const apiKeyInput = document.getElementById('apiKey');
-    const modelSelect = document.getElementById('modelSelect');
-    const customModelWrap = document.getElementById('customModelWrap');
-    const customModelInput = document.getElementById('customModel');
-    const promptInput = document.getElementById('promptInput');
-    const numVideosInput = document.getElementById('numVideos');
-    const numVideosValue = document.getElementById('numVideosValue');
-    const seedInput = document.getElementById('seedInput');
-    const sameSeedCheck = document.getElementById('sameSeedCheck');
-    const generateBtn = document.getElementById('generateBtn');
-    const btnText = document.getElementById('btnText');
-    const progressSection = document.getElementById('progressSection');
-    const progressGrid = document.getElementById('progressGrid');
-    const gallerySection = document.getElementById('gallerySection');
-    const galleryGrid = document.getElementById('galleryGrid');
+    // ==================== UTILS ====================
+    function $(id) { return document.getElementById(id); }
+    function showToast(msg, type='success') {
+      const c = $('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast toast-'+type;
+      t.innerHTML = `<span class="toast-icon">${type==='success'?'✓':'✕'}</span><span>${msg}</span>`;
+      c.appendChild(t);
+      requestAnimationFrame(()=>t.classList.add('show'));
+      setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400)},3000);
+    }
+    function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+    function mask(str) { if(!str) return ''; return str.slice(0,4)+'****'+str.slice(-4); }
 
-    // Load saved API key
-    if (state.apiKey) apiKeyInput.value = state.apiKey;
-
-    apiKeyInput.addEventListener('change', () => {
-      state.apiKey = apiKeyInput.value.trim();
-      localStorage.setItem('t2v_apiKey', state.apiKey);
-    });
-
-    modelSelect.addEventListener('change', () => {
-      customModelWrap.style.display = modelSelect.value === 'custom' ? 'block' : 'none';
-    });
-
-    numVideosInput.addEventListener('input', () => {
-      numVideosValue.textContent = numVideosInput.value;
-    });
-
-    // ========== TOAST ==========
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      const icon = type === 'success' ? '✓' : '✕';
-      toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
-      container.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add('show'));
-      setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 400);
-      }, 3000);
+    // ==================== TABS ====================
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      event.target.classList.add('active');
+      ['generate','providers','about'].forEach(t=>$(`tab-${t}`).style.display=t===tab?'block':'none');
+      if(tab==='providers') renderProviderList();
+      if(tab==='generate') populateGenProviders();
     }
 
-    // ========== PROXY ==========
-    const PROXY = '/api/replicate';
-
-    async function replicateGet(path, apiKey) {
-      const res = await fetch(`${PROXY}?path=${encodeURIComponent(path)}`, {
-        headers: { 'Authorization': `Token ${apiKey}` }
-      });
-      return res.json();
-    }
-
-    async function replicatePost(path, body, apiKey) {
-      const res = await fetch(`${PROXY}?path=${encodeURIComponent(path)}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-      return res.json();
-    }
-
-    // ========== MODEL VERSION ==========
-    async function getModelVersion(modelName, apiKey) {
-      const [owner, name] = modelName.split('/');
-      const data = await replicateGet(`/models/${owner}/${name}`, apiKey);
-      if (data.latest_version) {
-        return data.latest_version.id;
+    // ==================== PROVIDER MANAGEMENT ====================
+    function openProviderModal(editId=null) {
+      editingProviderId = editId;
+      $('modalTitle').textContent = editId ? 'Edit Provider' : 'Tambah Provider';
+      if(editId) {
+        const p = providers.find(x=>x.id===editId);
+        if(p) {
+          $('pName').value = p.name;
+          $('pType').value = p.type;
+          $('pBaseUrl').value = p.baseUrl;
+          $('pApiKey').value = p.apiKey;
+          $('pAuthHeader').value = p.authHeader || '';
+        }
+      } else {
+        $('pName').value=''; $('pType').value='replicate'; $('pBaseUrl').value=''; $('pApiKey').value=''; $('pAuthHeader').value='';
+        onProviderTypeChange();
       }
-      throw new Error('Model version not found');
+      $('providerModal').classList.add('show');
+    }
+    function closeProviderModal() { $('providerModal').classList.remove('show'); editingProviderId=null; }
+
+    function onProviderTypeChange() {
+      const type = $('pType').value;
+      const preset = PROVIDER_PRESETS[type];
+      if(preset && preset.baseUrl && !$('pBaseUrl').value) $('pBaseUrl').value = preset.baseUrl;
+      if(preset && preset.authHeader) $('pAuthHeader').value = preset.authHeader;
+      const hints = {
+        replicate: 'Contoh: https://api.replicate.com/v1',
+        'openai-compatible': 'Contoh: https://api.openai.com/v1 atau https://api.together.xyz/v1',
+        fal: 'Contoh: https://api.fal.ai',
+        runway: 'Contoh: https://api.runwayml.com/v1',
+        huggingface: 'Contoh: https://api-inference.huggingface.co',
+        segmind: 'Contoh: https://api.segmind.com/v1',
+        custom: 'Masukkan base URL provider-mu'
+      };
+      $('pBaseUrlHint').textContent = hints[type] || '';
     }
 
-    // ========== GENERATE ==========
+    function saveProvider() {
+      const name = $('pName').value.trim();
+      const type = $('pType').value;
+      const baseUrl = $('pBaseUrl').value.trim().replace(/\/$/,'');
+      const apiKey = $('pApiKey').value.trim();
+      const authHeader = $('pAuthHeader').value.trim();
+      if(!name || !baseUrl || !apiKey) { showToast('Nama, Base URL, dan API Key wajib diisi','error'); return; }
+      const provider = { id: editingProviderId||genId(), name, type, baseUrl, apiKey, authHeader: authHeader||PROVIDER_PRESETS[type]?.authHeader||'Bearer {key}', models: [] };
+      if(editingProviderId) {
+        const idx = providers.findIndex(p=>p.id===editingProviderId);
+        if(idx>=0) { provider.models = providers[idx].models; providers[idx] = provider; }
+      } else {
+        providers.push(provider);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(providers));
+      closeProviderModal();
+      renderProviderList();
+      showToast(editingProviderId?'Provider diupdate':'Provider ditambahkan');
+    }
+
+    function deleteProvider(id) {
+      if(!confirm('Hapus provider ini?')) return;
+      providers = providers.filter(p=>p.id!==id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(providers));
+      renderProviderList();
+      showToast('Provider dihapus');
+    }
+
+    async function testProviderConnection() {
+      const baseUrl = $('pBaseUrl').value.trim().replace(/\/$/,'');
+      const apiKey = $('pApiKey').value.trim();
+      const authHeader = ($('pAuthHeader').value.trim() || 'Bearer {key}').replace('{key}', apiKey);
+      if(!baseUrl || !apiKey) { showToast('Isi Base URL dan API Key dulu','error'); return; }
+      showToast('Sedang test koneksi...');
+      try {
+        const res = await fetch(`/api/proxy?path=/models&baseUrl=${encodeURIComponent(baseUrl)}`, {
+          headers: { 'Authorization': authHeader }
+        });
+        if(res.ok) { showToast('Koneksi berhasil! API aktif.'); }
+        else { const data = await res.json().catch(()=>({})); showToast('Koneksi gagal: '+(data.error||res.statusText),'error'); }
+      } catch(e) { showToast('Error: '+e.message,'error'); }
+    }
+
+    function renderProviderList() {
+      const list = $('providerList');
+      if(!providers.length) {
+        list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔌</div><div>Belum ada provider. Tambahkan provider pertama-mu!</div></div>`;
+        return;
+      }
+      list.innerHTML = providers.map(p=>`
+        <div class="provider-card">
+          <div class="provider-icon">🔌</div>
+          <div class="provider-info">
+            <div class="provider-name">${p.name}</div>
+            <div class="provider-url">${p.baseUrl}</div>
+            <div class="provider-meta">
+              <span class="tag tag-${p.type==='replicate'?'green':p.type==='openai-compatible'?'blue':p.type==='fal'?'purple':'orange'}">${p.type}</span>
+              <span>Key: ${mask(p.apiKey)}</span>
+              <span>Model: ${p.models?.length||0}</span>
+            </div>
+          </div>
+          <div class="provider-actions">
+            <button class="btn btn-secondary btn-sm" onclick="openScanModal('${p.id}')">🔍 Scan</button>
+            <button class="btn btn-secondary btn-sm" onclick="openProviderModal('${p.id}')">✏️ Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProvider('${p.id}')">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==================== MODEL SCANNER ====================
+    function openScanModal(pid) {
+      scanningProviderId = pid;
+      $('scanModal').classList.add('show');
+      $('scanResults').innerHTML = '';
+      $('scanBtn').style.display = 'inline-flex';
+      $('scanBtn').disabled = false;
+      $('scanBtn').innerHTML = '🔍 Scan Model';
+    }
+    function closeScanModal() { $('scanModal').classList.remove('show'); scanningProviderId=null; }
+
+    async function runModelScan() {
+      const p = providers.find(x=>x.id===scanningProviderId);
+      if(!p) return;
+      const btn = $('scanBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Scanning...';
+      const results = $('scanResults');
+      results.innerHTML = '<div style="color:var(--text-secondary);font-size:0.85rem">Sedang memindai model...</div>';
+
+      const auth = p.authHeader.replace('{key}', p.apiKey);
+      let foundModels = [];
+
+      try {
+        if(p.type==='replicate' || (p.type==='custom' && PROVIDER_PRESETS[p.type]?.scanMethod==='replicate')) {
+          // Replicate scan
+          let cursor = null;
+          for(let page=0; page<5; page++) {
+            const url = `/api/proxy?path=/models${cursor?'?cursor='+cursor:''}&baseUrl=${encodeURIComponent(p.baseUrl)}`;
+            const res = await fetch(url, { headers: { 'Authorization': auth } });
+            const data = await res.json();
+            if(!data.results) break;
+            const videoModels = data.results.filter(m => {
+              const desc = (m.description||'').toLowerCase();
+              const tags = (m.tags||[]).join(' ').toLowerCase();
+              const name = (m.name||'').toLowerCase();
+              return desc.includes('video') || desc.includes('animation') || tags.includes('video') || name.includes('video') || name.includes('animate');
+            }).map(m=>({ id: m.name, name: m.name, description: m.description||'', type: 'replicate' }));
+            foundModels.push(...videoModels);
+            cursor = data.next;
+            if(!cursor) break;
+          }
+        } else {
+          // OpenAI-compatible scan
+          const url = `/api/proxy?path=/models&baseUrl=${encodeURIComponent(p.baseUrl)}`;
+          const res = await fetch(url, { headers: { 'Authorization': auth } });
+          const data = await res.json();
+          const models = data.data || data.models || data.results || [];
+          const videoModels = models.filter(m => {
+            const id = (m.id||m.name||'').toLowerCase();
+            return id.includes('video') || id.includes('vision') || id.includes('dall') || id.includes('image') || id.includes('sd') || id.includes('stable');
+          }).map(m=>({ id: m.id||m.name, name: m.id||m.name, description: m.description||m.object||'', type: 'openai' }));
+          foundModels.push(...videoModels);
+        }
+      } catch(e) {
+        results.innerHTML = `<div style="color:var(--pink)">Error: ${e.message}</div>`;
+        btn.disabled = false; btn.innerHTML = '🔍 Scan Model'; return;
+      }
+
+      // Save to provider
+      const pIdx = providers.findIndex(x=>x.id===scanningProviderId);
+      if(pIdx>=0) {
+        providers[pIdx].models = foundModels;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(providers));
+      }
+
+      if(!foundModels.length) {
+        results.innerHTML = `<div style="color:var(--text-secondary)">Tidak ditemukan model video. Coba tambahkan model secara manual di tab Providers (Edit).</div>`;
+      } else {
+        results.innerHTML = `
+          <div style="margin-bottom:10px;font-weight:700;color:var(--green)">${foundModels.length} model ditemukan</div>
+          <div class="model-grid">
+            ${foundModels.map(m=>`<div class="model-item"><div class="model-item-radio"></div><div class="model-item-name" title="${m.description}">${m.name}</div></div>`).join('')}
+          </div>
+        `;
+      }
+      btn.disabled = false; btn.innerHTML = '🔍 Scan Lagi';
+      showToast(`${foundModels.length} model ditemukan`);
+    }
+
+    // ==================== GENERATE ====================
+    function populateGenProviders() {
+      const sel = $('genProvider');
+      sel.innerHTML = '<option value="">-- Pilih provider --</option>' +
+        providers.map(p=>`<option value="${p.id}">${p.name} (${p.type})</option>`).join('');
+      $('modelSelectWrap').style.display = 'none';
+      $('promptPanel').style.display = 'none';
+      $('genBtn').style.display = 'none';
+    }
+
+    function onProviderChange() {
+      const pid = $('genProvider').value;
+      if(!pid) { $('modelSelectWrap').style.display='none'; $('promptPanel').style.display='none'; $('genBtn').style.display='none'; return; }
+      const p = providers.find(x=>x.id===pid);
+      if(!p) return;
+
+      const mSel = $('genModel');
+      if(p.models?.length) {
+        mSel.innerHTML = '<option value="">-- Pilih model --</option>' +
+          p.models.map(m=>`<option value="${m.id}" data-type="${m.type||p.type}">${m.name}</option>`).join('');
+        $('modelHint').textContent = `${p.models.length} model tersedia dari scan`;
+      } else {
+        mSel.innerHTML = '<option value="">-- Pilih model --</option><option value="custom">Custom Model (masukkan ID manual)</option>';
+        $('modelHint').textContent = 'Belum ada model terscan. Pilih Custom atau scan dulu di tab Providers.';
+      }
+      $('modelSelectWrap').style.display = 'block';
+      $('promptPanel').style.display = 'block';
+      $('genBtn').style.display = 'flex';
+    }
+
+    function onModelChange() {
+      // Could show model info here
+    }
+
     async function generateVideos() {
-      const apiKey = apiKeyInput.value.trim();
-      if (!apiKey) {
-        showToast('Masukkan API key dulu!', 'error');
-        apiKeyInput.focus();
+      const pid = $('genProvider').value;
+      const modelId = $('genModel').value;
+      const prompt = $('genPrompt').value.trim();
+      if(!pid || !modelId) { showToast('Pilih provider dan model','error'); return; }
+      if(!prompt) { showToast('Masukkan prompt','error'); return; }
+
+      const p = providers.find(x=>x.id===pid);
+      if(!p) return;
+      const numVideos = parseInt($('genNumVideos').value);
+      let seed = $('genSeed').value ? parseInt($('genSeed').value) : Math.floor(Math.random()*1000000);
+      const sameSeed = $('genSameSeed').checked;
+      const auth = p.authHeader.replace('{key}', p.apiKey);
+
+      genState.isGenerating = true;
+      $('genBtn').disabled = true;
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Menyiapkan...';
+
+      // For now, fully support Replicate. Others show toast.
+      if(p.type !== 'replicate') {
+        showToast('Generate video untuk provider ini masih dalam pengembangan. Gunakan Replicate untuk sekarang.','error');
+        genState.isGenerating = false;
+        $('genBtn').disabled = false;
+        $('genBtnText').textContent = '🎬 Generate Video';
         return;
       }
-
-      const prompt = promptInput.value.trim();
-      if (!prompt) {
-        showToast('Masukkan prompt dulu!', 'error');
-        promptInput.focus();
-        return;
-      }
-
-      const modelName = modelSelect.value === 'custom' ? customModelInput.value.trim() : modelSelect.value;
-      if (!modelName || modelName === 'custom') {
-        showToast('Pilih atau masukkan model!', 'error');
-        return;
-      }
-
-      const numVideos = parseInt(numVideosInput.value);
-      let baseSeed = seedInput.value ? parseInt(seedInput.value) : Math.floor(Math.random() * 1000000);
-      const useSameSeed = sameSeedCheck.checked;
-
-      state.isGenerating = true;
-      generateBtn.disabled = true;
-      btnText.innerHTML = '<span class="spinner"></span> Menyiapkan...';
 
       try {
         // Get model version
-        btnText.innerHTML = '<span class="spinner"></span> Mengambil model...';
-        const version = await getModelVersion(modelName, apiKey);
+        $('genBtnText').innerHTML = '<span class="spinner"></span> Mengambil model...';
+        const [owner,name] = modelId.split('/');
+        const versionRes = await fetch(`/api/proxy?path=/models/${owner}/${name}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+          headers: { 'Authorization': auth }
+        });
+        const versionData = await versionRes.json();
+        if(!versionData.latest_version) throw new Error('Model version tidak ditemukan');
+        const version = versionData.latest_version.id;
 
-        // Create predictions
-        state.predictions = [];
-        progressSection.style.display = 'block';
-        progressGrid.innerHTML = '';
+        genState.predictions = [];
+        $('progressSection').style.display = 'block';
+        $('progressGrid').innerHTML = '';
 
-        for (let i = 0; i < numVideos; i++) {
-          const seed = useSameSeed ? baseSeed : baseSeed + i;
-          const input = { prompt };
-
-          // Some models use different param names
-          if (modelName.includes('stable-video-diffusion')) {
-            // SVD needs image - skip seed for now
-            delete input.seed;
-          } else {
-            input.seed = seed;
-          }
-
-          const prediction = await replicatePost('/predictions', {
-            version,
-            input,
-          }, apiKey);
-
-          if (prediction.error) {
-            throw new Error(prediction.error + (prediction.detail ? ': ' + prediction.detail : ''));
-          }
-
-          state.predictions.push({
-            id: prediction.id,
-            index: i + 1,
-            status: prediction.status,
-            output: null,
-            error: null,
+        for(let i=0; i<numVideos; i++) {
+          const s = sameSeed ? seed : seed + i;
+          const body = { version, input: { prompt, seed: s } };
+          const predRes = await fetch(`/api/proxy?path=/predictions&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+            method: 'POST',
+            headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
           });
+          const predData = await predRes.json();
+          if(predData.error) throw new Error(predData.error + (predData.detail?': '+predData.detail:''));
 
-          renderProgressCard(i + 1, prediction.status, 0);
+          genState.predictions.push({ id: predData.id, index: i+1, status: predData.status, output: null, error: null });
+          renderProgressCard(i+1, predData.status, 0);
         }
 
-        btnText.innerHTML = '<span class="spinner"></span> Generating...';
+        $('genBtnText').innerHTML = '<span class="spinner"></span> Generating...';
         showToast(`${numVideos} video sedang dibuat...`);
+        pollAllPredictions(p, auth);
 
-        // Start polling
-        pollAllPredictions(apiKey);
-
-      } catch (error) {
-        console.error('Generate error:', error);
-        showToast(error.message || 'Gagal memulai generate', 'error');
-        state.isGenerating = false;
-        generateBtn.disabled = false;
-        btnText.textContent = '🎬 Generate Video';
+      } catch(err) {
+        console.error(err);
+        showToast(err.message||'Gagal memulai generate','error');
+        genState.isGenerating = false;
+        $('genBtn').disabled = false;
+        $('genBtnText').textContent = '🎬 Generate Video';
       }
     }
 
-    // ========== POLLING ==========
-    async function pollAllPredictions(apiKey) {
-      const pollInterval = setInterval(async () => {
+    async function pollAllPredictions(p, auth) {
+      const iv = setInterval(async ()=>{
         let allDone = true;
-
-        for (const pred of state.predictions) {
-          if (pred.status === 'succeeded' || pred.status === 'failed' || pred.status === 'canceled') {
-            continue;
-          }
-
+        for(const pred of genState.predictions) {
+          if(['succeeded','failed','canceled'].includes(pred.status)) continue;
           allDone = false;
-
           try {
-            const data = await replicateGet(`/predictions/${pred.id}`, apiKey);
-            pred.status = data.status;
-            pred.output = data.output;
-            pred.error = data.error;
-            pred.logs = data.logs;
-
-            // Extract progress from logs if available
+            const res = await fetch(`/api/proxy?path=/predictions/${pred.id}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+              headers: { 'Authorization': auth }
+            });
+            const data = await res.json();
+            pred.status = data.status; pred.output = data.output; pred.error = data.error;
             let progress = 0;
-            if (data.logs) {
-              const match = data.logs.match(/(\d+)%/);
-              if (match) progress = parseInt(match[1]);
-            }
-            if (data.status === 'starting') progress = 10;
-            if (data.status === 'processing') progress = Math.max(progress, 30);
-            if (data.status === 'succeeded') progress = 100;
-
+            if(data.logs) { const m = data.logs.match(/(\d+)%/); if(m) progress = parseInt(m[1]); }
+            if(data.status==='starting') progress = 10;
+            if(data.status==='processing') progress = Math.max(progress,30);
+            if(data.status==='succeeded') progress = 100;
             updateProgressCard(pred.index, data.status, progress, data.output);
-
-            if (data.status === 'succeeded' && data.output) {
-              addVideoToGallery(pred.index, data.output, pred);
-            }
-
-          } catch (err) {
-            console.error('Poll error:', err);
-          }
+            if(data.status==='succeeded' && data.output) addVideoToGallery(pred.index, data.output, pred, p);
+          } catch(e) { console.error('poll err',e); }
         }
-
-        if (allDone) {
-          clearInterval(pollInterval);
-          state.isGenerating = false;
-          generateBtn.disabled = false;
-          btnText.textContent = '🎬 Generate Video';
-
-          const succeeded = state.predictions.filter(p => p.status === 'succeeded').length;
-          const failed = state.predictions.filter(p => p.status === 'failed').length;
-
-          if (succeeded > 0) {
-            showToast(`${succeeded} video berhasil dibuat!`);
-          }
-          if (failed > 0) {
-            showToast(`${failed} video gagal dibuat`, 'error');
-          }
+        if(allDone) {
+          clearInterval(iv);
+          genState.isGenerating = false;
+          $('genBtn').disabled = false;
+          $('genBtnText').textContent = '🎬 Generate Video';
+          const ok = genState.predictions.filter(x=>x.status==='succeeded').length;
+          const fail = genState.predictions.filter(x=>x.status==='failed').length;
+          if(ok) showToast(`${ok} video berhasil!`);
+          if(fail) showToast(`${fail} video gagal`,'error');
         }
       }, 3000);
     }
 
-    // ========== PROGRESS UI ==========
-    function renderProgressCard(index, status, progress) {
+    function renderProgressCard(idx, status, progress) {
       const card = document.createElement('div');
       card.className = 'progress-card';
-      card.id = `progress-${index}`;
+      card.id = `prog-${idx}`;
       card.innerHTML = `
-        <div class="progress-header">
-          <div class="progress-title">📹 Video ${index}</div>
-          <div class="progress-status status-${status}">${status}</div>
-        </div>
-        <div class="progress-bar-wrap">
-          <div class="progress-bar" style="width:${progress}%"></div>
-        </div>
-        <div class="progress-meta" id="meta-${index}">Menunggu...</div>
+        <div class="progress-header"><div class="progress-title">📹 Video ${idx}</div><div class="progress-status status-${status}">${status}</div></div>
+        <div class="progress-bar-wrap"><div class="progress-bar" style="width:${progress}%"></div></div>
+        <div class="progress-meta" id="progmeta-${idx}">Menunggu...</div>
       `;
-      progressGrid.appendChild(card);
+      $('progressGrid').appendChild(card);
     }
 
-    function updateProgressCard(index, status, progress, output) {
-      const card = document.getElementById(`progress-${index}`);
-      if (!card) return;
-
-      const statusEl = card.querySelector('.progress-status');
+    function updateProgressCard(idx, status, progress, output) {
+      const card = $(`prog-${idx}`); if(!card) return;
+      const st = card.querySelector('.progress-status');
       const bar = card.querySelector('.progress-bar');
-      const meta = document.getElementById(`meta-${index}`);
-
-      statusEl.className = `progress-status status-${status}`;
-      statusEl.textContent = status;
+      const meta = $(`progmeta-${idx}`);
+      st.className = `progress-status status-${status}`; st.textContent = status;
       bar.style.width = `${progress}%`;
-
-      if (status === 'starting') meta.textContent = 'Memulai server...';
-      else if (status === 'processing') meta.textContent = `Sedang generate... ${progress}%`;
-      else if (status === 'succeeded') {
-        meta.textContent = 'Selesai!';
-        card.classList.add('success');
-      }
-      else if (status === 'failed') {
-        meta.textContent = 'Gagal generate';
-        card.classList.add('error');
-      }
+      if(status==='starting') meta.textContent = 'Memulai server...';
+      else if(status==='processing') meta.textContent = `Generate... ${progress}%`;
+      else if(status==='succeeded') { meta.textContent = 'Selesai!'; card.classList.add('success'); }
+      else if(status==='failed') { meta.textContent = 'Gagal'; card.classList.add('error'); }
     }
 
-    // ========== GALLERY ==========
-    function addVideoToGallery(index, output, pred) {
-      gallerySection.style.display = 'block';
-
-      // Output can be string URL or array of URLs
-      let videoUrl = '';
-      if (typeof output === 'string') videoUrl = output;
-      else if (Array.isArray(output)) videoUrl = output[output.length - 1];
-      else if (output && typeof output === 'object') videoUrl = output.video || output.url || '';
-
-      if (!videoUrl) return;
-
-      // Check if already added
-      if (document.getElementById(`video-${pred.id}`)) return;
-
+    function addVideoToGallery(idx, output, pred, p) {
+      $('gallerySection').style.display = 'block';
+      let url = '';
+      if(typeof output==='string') url = output;
+      else if(Array.isArray(output)) url = output[output.length-1];
+      else if(output && typeof output==='object') url = output.video||output.url||'';
+      if(!url) return;
+      if($(`vid-${pred.id}`)) return;
       const card = document.createElement('div');
       card.className = 'video-card';
-      card.id = `video-${pred.id}`;
+      card.id = `vid-${pred.id}`;
       card.innerHTML = `
-        <video class="video-player" controls poster="" preload="metadata">
-          <source src="${videoUrl}" type="video/mp4">
-          Browser tidak support video tag.
-        </video>
+        <video class="video-player" controls preload="metadata"><source src="${url}" type="video/mp4"></video>
         <div class="video-info">
-          <div class="video-title">Video ${index}</div>
-          <div class="video-meta">${promptInput.value.slice(0, 60)}${promptInput.value.length > 60 ? '...' : ''}</div>
+          <div class="video-title">Video ${idx}</div>
+          <div class="video-meta">${$('genPrompt').value.slice(0,60)}${$('genPrompt').value.length>60?'...':''}</div>
           <div class="video-actions">
-            <button class="btn btn-secondary" onclick="downloadVideo('${videoUrl}', 'video-${index}.mp4')">⬇ Download</button>
-            <button class="btn btn-secondary" onclick="copyUrl('${videoUrl}')">📋 Copy URL</button>
+            <button class="btn btn-secondary" onclick="downloadVid('${url}','video-${idx}.mp4')">⬇ Download</button>
+            <button class="btn btn-secondary" onclick="copyVidUrl('${url}')">📋 Copy URL</button>
           </div>
         </div>
       `;
-      galleryGrid.appendChild(card);
+      $('galleryGrid').appendChild(card);
     }
 
-    async function downloadVideo(url, filename) {
+    async function downloadVid(url, filename) {
       try {
         showToast('Sedang download...');
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-        showToast('Download selesai!');
-      } catch (err) {
-        showToast('Gagal download, coba buka URL langsung', 'error');
-        window.open(url, '_blank');
-      }
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const burl = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=burl; a.download=filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(burl); showToast('Download selesai!');
+      } catch(e) { showToast('Gagal download, buka URL langsung','error'); window.open(url,'_blank'); }
+    }
+    async function copyVidUrl(url) {
+      try { await navigator.clipboard.writeText(url); showToast('URL disalin!'); }
+      catch(e) { showToast('Gagal menyalin','error'); }
     }
 
-    async function copyUrl(url) {
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('URL disalin!');
-      } catch (err) {
-        showToast('Gagal menyalin URL', 'error');
-      }
-    }
+    // Init
+    populateGenProviders();
   </script>
 </body>
 </html>
