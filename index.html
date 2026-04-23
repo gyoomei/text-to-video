@@ -796,49 +796,23 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       $('genBtn').disabled = true;
       $('genBtnText').innerHTML = '<span class="spinner"></span> Menyiapkan...';
 
-      // For now, fully support Replicate. Others show toast.
-      if(p.type !== 'replicate') {
-        showToast('Generate video untuk provider ini masih dalam pengembangan. Gunakan Replicate untuk sekarang.','error');
-        genState.isGenerating = false;
-        $('genBtn').disabled = false;
-        $('genBtnText').textContent = '🎬 Generate Video';
-        return;
-      }
-
       try {
-        // Get model version
-        $('genBtnText').innerHTML = '<span class="spinner"></span> Mengambil model...';
-        const [owner,name] = modelId.split('/');
-        const versionRes = await fetch(`/api/proxy?path=/models/${owner}/${name}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
-          headers: { 'Authorization': auth }
-        });
-        const versionData = await versionRes.json();
-        if(!versionData.latest_version) throw new Error('Model version tidak ditemukan');
-        const version = versionData.latest_version.id;
-
         genState.predictions = [];
         $('progressSection').style.display = 'block';
         $('progressGrid').innerHTML = '';
 
-        for(let i=0; i<numVideos; i++) {
-          const s = sameSeed ? seed : seed + i;
-          const body = { version, input: { prompt, seed: s } };
-          const predRes = await fetch(`/api/proxy?path=/predictions&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
-            method: 'POST',
-            headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-          });
-          const predData = await predRes.json();
-          if(predData.error) throw new Error(predData.error + (predData.detail?': '+predData.detail:''));
-
-          genState.predictions.push({ id: predData.id, index: i+1, status: predData.status, output: null, error: null });
-          renderProgressCard(i+1, predData.status, 0);
+        if(p.type === 'replicate') {
+          await generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+        } else if(p.type === 'fal') {
+          await generateFal(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+        } else if(p.type === 'huggingface') {
+          await generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+        } else if(p.type === 'segmind') {
+          await generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth);
+        } else {
+          showToast('Provider '+p.type+' belum support text-to-video. Gunakan Replicate, Fal.ai, HuggingFace, atau Segmind.','error');
+          throw new Error('Provider not supported');
         }
-
-        $('genBtnText').innerHTML = '<span class="spinner"></span> Generating...';
-        showToast(`${numVideos} video sedang dibuat...`);
-        pollAllPredictions(p, auth);
-
       } catch(err) {
         console.error(err);
         showToast(err.message||'Gagal memulai generate','error');
@@ -848,6 +822,127 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
       }
     }
 
+    async function generateReplicate(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Mengambil model...';
+      const [owner,name] = modelId.split('/');
+      const versionRes = await fetch(`/api/proxy?path=/models/${owner}/${name}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+        headers: { 'Authorization': auth }
+      });
+      const versionData = await versionRes.json();
+      if(!versionData.latest_version) throw new Error('Model version tidak ditemukan');
+      const version = versionData.latest_version.id;
+
+      for(let i=0; i<numVideos; i++) {
+        const s = sameSeed ? seed : seed + i;
+        const body = { version, input: { prompt, seed: s } };
+        const predRes = await fetch(`/api/proxy?path=/predictions&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+          method: 'POST',
+          headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const predData = await predRes.json();
+        if(predData.error) throw new Error(predData.error + (predData.detail?': '+predData.detail:''));
+
+        genState.predictions.push({ id: predData.id, index: i+1, status: predData.status, output: null, error: null, provider: 'replicate' });
+        renderProgressCard(i+1, predData.status, 0);
+      }
+
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Generating...';
+      showToast(`${numVideos} video sedang dibuat...`);
+      pollAllPredictions(p, auth);
+    }
+
+    async function generateFal(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Submitting to Fal...';
+      for(let i=0; i<numVideos; i++) {
+        const s = sameSeed ? seed : seed + i;
+        const body = { prompt, seed: s };
+        const path = modelId.startsWith('/') ? modelId : `/${modelId}`;
+        const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+          method: 'POST',
+          headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if(data.error || data.detail) throw new Error(data.error || data.detail || 'Fal error');
+
+        const reqId = data.request_id || data.id || data.video?.id;
+        if(reqId) {
+          genState.predictions.push({ id: reqId, index: i+1, status: 'processing', output: null, error: null, provider: 'fal', baseUrl: p.baseUrl, auth: auth, modelId });
+          renderProgressCard(i+1, 'starting', 5);
+        } else if(data.video?.url || data.url) {
+          const outUrl = data.video?.url || data.url;
+          genState.predictions.push({ id: genId(), index: i+1, status: 'succeeded', output: outUrl, error: null, provider: 'fal' });
+          renderProgressCard(i+1, 'succeeded', 100);
+          updateProgressCard(i+1, 'succeeded', 100, outUrl);
+          addVideoToGallery(i+1, outUrl, { id: genId() }, p);
+        } else {
+          throw new Error('Response Fal tidak dikenali: '+JSON.stringify(data).slice(0,200));
+        }
+      }
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Generating...';
+      showToast(`${numVideos} video sedang dibuat di Fal...`);
+      pollAllPredictions(p, auth);
+    }
+
+    async function generateHuggingFace(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Submitting to HuggingFace...';
+      for(let i=0; i<numVideos; i++) {
+        const s = sameSeed ? seed : seed + i;
+        const body = { inputs: prompt, parameters: { seed: s } };
+        const path = `/models/${modelId}`;
+        const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+          method: 'POST',
+          headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const blob = await res.blob();
+        if(!blob || blob.size===0) throw new Error('HuggingFace returned empty response');
+
+        const url = URL.createObjectURL(blob);
+        const predId = genId();
+        genState.predictions.push({ id: predId, index: i+1, status: 'succeeded', output: url, error: null, provider: 'huggingface' });
+        renderProgressCard(i+1, 'succeeded', 100);
+        updateProgressCard(i+1, 'succeeded', 100, url);
+        addVideoToGallery(i+1, url, { id: predId }, p);
+      }
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Selesai!';
+      showToast(`${numVideos} video berhasil!`);
+      genState.isGenerating = false;
+      $('genBtn').disabled = false;
+      $('genBtnText').textContent = '🎬 Generate Video';
+    }
+
+    async function generateSegmind(p, modelId, prompt, numVideos, sameSeed, seed, auth) {
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Submitting to Segmind...';
+      for(let i=0; i<numVideos; i++) {
+        const s = sameSeed ? seed : seed + i;
+        const body = { prompt, seed: s };
+        const path = modelId.startsWith('/') ? modelId : `/${modelId}`;
+        const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+          method: 'POST',
+          headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if(data.error || data.detail) throw new Error(data.error || data.detail || 'Segmind error');
+
+        const url = data.video?.url || data.url || data.output;
+        if(!url) throw new Error('Response Segmind tidak dikenali: '+JSON.stringify(data).slice(0,200));
+
+        const predId = genId();
+        genState.predictions.push({ id: predId, index: i+1, status: 'succeeded', output: url, error: null, provider: 'segmind' });
+        renderProgressCard(i+1, 'succeeded', 100);
+        updateProgressCard(i+1, 'succeeded', 100, url);
+        addVideoToGallery(i+1, url, { id: predId }, p);
+      }
+      $('genBtnText').innerHTML = '<span class="spinner"></span> Selesai!';
+      showToast(`${numVideos} video berhasil!`);
+      genState.isGenerating = false;
+      $('genBtn').disabled = false;
+      $('genBtnText').textContent = '🎬 Generate Video';
+    }
+
     async function pollAllPredictions(p, auth) {
       const iv = setInterval(async ()=>{
         let allDone = true;
@@ -855,10 +950,34 @@ Raw: ${JSON.stringify(debugInfo.raw||{},null,2).slice(0,800)}</div>
           if(['succeeded','failed','canceled'].includes(pred.status)) continue;
           allDone = false;
           try {
-            const res = await fetch(`/api/proxy?path=/predictions/${pred.id}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
-              headers: { 'Authorization': auth }
-            });
-            const data = await res.json();
+            let data;
+            if(pred.provider === 'fal') {
+              const statusPath = `/queue/requests/${pred.id}/status`;
+              const res = await fetch(`/api/proxy?path=${encodeURIComponent(statusPath)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+                headers: { 'Authorization': auth }
+              });
+              const statusData = await res.json();
+              if(statusData.status === 'COMPLETED' || statusData.status === 'completed') {
+                const resultRes = await fetch(`/api/proxy?path=${encodeURIComponent(`/queue/requests/${pred.id}`)}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+                  headers: { 'Authorization': auth }
+                });
+                const resultData = await resultRes.json();
+                pred.status = 'succeeded';
+                pred.output = resultData.video?.url || resultData.url || resultData.output;
+              } else if(statusData.status === 'FAILED' || statusData.status === 'failed') {
+                pred.status = 'failed';
+                pred.error = statusData.error || 'Fal queue failed';
+              } else {
+                pred.status = 'processing';
+              }
+              data = { status: pred.status, output: pred.output, error: pred.error, logs: '' };
+            } else {
+              const res = await fetch(`/api/proxy?path=/predictions/${pred.id}&baseUrl=${encodeURIComponent(p.baseUrl)}`, {
+                headers: { 'Authorization': auth }
+              });
+              data = await res.json();
+            }
+
             pred.status = data.status; pred.output = data.output; pred.error = data.error;
             let progress = 0;
             if(data.logs) { const m = data.logs.match(/(\d+)%/); if(m) progress = parseInt(m[1]); }
